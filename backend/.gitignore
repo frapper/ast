@@ -9,6 +9,11 @@ dist
 .env.local
 .env.*.local
 
+# database
+*.db
+*.sqlite
+*.sqlite3
+
 # logs
 logs
 *.log

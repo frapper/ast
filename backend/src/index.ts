@@ -1,6 +1,20 @@
-const PORT = process.env.PORT || 3001;
+import { startServer } from './server'
 
-console.log(`Backend server starting on port ${PORT}...`);
+const server = startServer()
 
-// TODO: Add your backend logic here
-// Example: Express server, GraphQL server, etc.
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...')
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
+})
