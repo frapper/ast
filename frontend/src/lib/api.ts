@@ -155,4 +155,46 @@ export const mySchoolsApi = {
   }
 }
 
+export const groupsApi = {
+  /**
+   * Get groups for a specific school
+   */
+  async getGroupsBySchool(schoolId: string) {
+    const response = await api.get(`/api/groups/school/${schoolId}`)
+    return response.data
+  },
+
+  /**
+   * Get all groups for current user
+   */
+  async getAllUserGroups() {
+    const response = await api.get('/api/groups/user')
+    return response.data
+  },
+
+  /**
+   * Create a new group
+   */
+  async createGroup(schoolId: string, groupName: string) {
+    const response = await api.post('/api/groups', { school_id: schoolId, group_name: groupName })
+    return response.data
+  },
+
+  /**
+   * Update group name
+   */
+  async updateGroup(groupId: string, groupName: string) {
+    const response = await api.put(`/api/groups/${groupId}`, { group_name: groupName })
+    return response.data
+  },
+
+  /**
+   * Delete a group
+   */
+  async deleteGroup(groupId: string) {
+    const response = await api.delete(`/api/groups/${groupId}`)
+    return response.data
+  }
+}
+
 export default api

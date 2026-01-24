@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Loader2, Heart, Trash2, MapPin, Users } from 'lucide-react'
-import { mySchoolsApi } from '@/lib/api'
+import { ArrowLeft, Loader2, Heart, Trash2, MapPin, Users, Layers } from 'lucide-react'
+import { mySchoolsApi, groupsApi } from '@/lib/api'
 
 export interface School {
   id?: number
@@ -36,11 +36,34 @@ export function MySchools() {
   const [loading, setLoading] = useState(true)
   const [removing, setRemoving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [groupCounts, setGroupCounts] = useState<Record<string, number>>({})
 
   // Load user's schools on mount
   useEffect(() => {
     loadMySchools()
   }, [])
+
+  // Load group counts when schools change
+  useEffect(() => {
+    if (schools.length > 0) {
+      loadGroupCounts()
+    }
+  }, [schools])
+
+  const loadGroupCounts = async () => {
+    const counts: Record<string, number> = {}
+    for (const school of schools) {
+      if (school.school_id) {
+        try {
+          const response = await groupsApi.getGroupsBySchool(school.school_id)
+          counts[school.school_id] = response.count
+        } catch (err) {
+          counts[school.school_id] = 0
+        }
+      }
+    }
+    setGroupCounts(counts)
+  }
 
   const loadMySchools = async () => {
     try {
@@ -82,6 +105,10 @@ export function MySchools() {
 
   const handleBrowseSchools = () => {
     navigate('/schools')
+  }
+
+  const handleViewGroups = (schoolId: string, schoolName: string) => {
+    navigate(`/groups/${schoolId}`, { state: { schoolName } })
   }
 
   const handleGoBack = () => {
@@ -178,25 +205,29 @@ export function MySchools() {
                     )}
                   </CardContent>
                   <CardContent className="pt-0 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleRemoveSchool(school.school_id!, school.school_name)}
-                      disabled={removing === school.school_id}
-                    >
-                      {removing === school.school_id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Removing...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Remove
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewGroups(school.school_id!, school.school_name)}
+                      >
+                        <Layers className="mr-1 h-4 w-4" />
+                        Groups ({groupCounts[school.school_id!] || 0})
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSchool(school.school_id!, school.school_name)}
+                        disabled={removing === school.school_id}
+                      >
+                        {removing === school.school_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

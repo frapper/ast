@@ -5,6 +5,7 @@ import studentRoutes from './routes/students'
 import schoolRoutes from './routes/schools'
 import authRoutes from './routes/auth'
 import mySchoolsRoutes from './routes/mySchools'
+import groupsRoutes from './routes/groups'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -33,6 +34,7 @@ app.use('/api/students', studentRoutes)
 app.use('/api/schools', schoolRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/my-schools', mySchoolsRoutes)
+app.use('/api/groups', groupsRoutes)
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -4,6 +4,7 @@ import { Student } from '@/pages/Student'
 import { Schools } from '@/pages/Schools'
 import { Login } from '@/pages/Login'
 import { MySchools } from '@/pages/MySchools'
+import { Groups } from '@/pages/Groups'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/schools" element={<Schools />} />
         <Route path="/login" element={<Login />} />
         <Route path="/my-schools" element={<MySchools />} />
+        <Route path="/groups/:schoolId" element={<Groups />} />
       </Routes>
     </BrowserRouter>
   )
