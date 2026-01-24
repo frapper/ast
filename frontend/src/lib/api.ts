@@ -194,6 +194,30 @@ export const groupsApi = {
   async deleteGroup(groupId: string) {
     const response = await api.delete(`/api/groups/${groupId}`)
     return response.data
+  },
+
+  /**
+   * Get students for a specific group
+   */
+  async getGroupStudents(groupId: string) {
+    const response = await api.get(`/api/groups/${groupId}/students`)
+    return response.data
+  },
+
+  /**
+   * Generate synthetic students for a specific group
+   */
+  async generateStudentsForGroup(groupId: string, count: number) {
+    const response = await api.post(`/api/groups/${groupId}/students/generate`, { count })
+    return response.data
+  },
+
+  /**
+   * Remove a student from a group
+   */
+  async removeStudentFromGroup(groupId: string, studentId: string) {
+    const response = await api.delete(`/api/groups/${groupId}/students/${studentId}`)
+    return response.data
   }
 }
 

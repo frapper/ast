@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { StudentIllustration } from '@/components/StudentIllustration'
 import { SchoolIllustration } from '@/components/SchoolIllustration'
 import { MySchoolsIllustration } from '@/components/MySchoolsIllustration'
 import { GraduationCap, LogOut, Loader2 } from 'lucide-react'
@@ -68,10 +67,6 @@ export function Home() {
     } catch (err) {
       console.error('Logout error:', err)
     }
-  }
-
-  const handleStudentClick = () => {
-    navigate('/student')
   }
 
   const handleSchoolsClick = () => {
@@ -201,44 +196,27 @@ export function Home() {
           </Button>
         </div>
 
-        {/* Student Navigation Card */}
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Student Portal</CardTitle>
-            <CardDescription>Click the student icon below to access your dashboard</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <StudentIllustration onClick={handleStudentClick} />
-          </CardContent>
-        </Card>
+        {/* Schools and My Schools Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Schools</CardTitle>
+              <CardDescription>Click the school icon below to access the school directory</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <SchoolIllustration onClick={handleSchoolsClick} />
+            </CardContent>
+          </Card>
 
-        {/* Schools Navigation Card */}
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Manage Schools</CardTitle>
-            <CardDescription>Click the school icon below to access the school directory</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <SchoolIllustration onClick={handleSchoolsClick} />
-          </CardContent>
-        </Card>
-
-        {/* My Schools Navigation Card */}
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>My Schools</CardTitle>
-            <CardDescription>View your saved schools</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <MySchoolsIllustration onClick={handleMySchoolsClick} />
-          </CardContent>
-        </Card>
-
-        {/* Footer CTA */}
-        <div className="text-center">
-          <Button size="lg" onClick={handleStudentClick}>
-            Go to Student Portal
-          </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>My Schools</CardTitle>
+              <CardDescription>View your saved schools</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <MySchoolsIllustration onClick={handleMySchoolsClick} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

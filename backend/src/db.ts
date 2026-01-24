@@ -27,6 +27,27 @@ db.exec(`
 
 dbLogger.success('students', 'CREATE_TABLE', { message: 'Students table initialized' })
 
+// Create group_students junction table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS group_students (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id TEXT NOT NULL,
+    student_id TEXT NOT NULL,
+    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    UNIQUE(group_id, student_id)
+  )
+`)
+
+dbLogger.success('group_students', 'CREATE_TABLE', { message: 'Group_Students table initialized' })
+
+// Create indexes for performance
+db.exec(`CREATE INDEX IF NOT EXISTS idx_group_students_group_id ON group_students(group_id)`)
+db.exec(`CREATE INDEX IF NOT EXISTS idx_group_students_student_id ON group_students(student_id)`)
+
+dbLogger.success('group_students', 'CREATE_INDEX', { message: 'Group_Students indexes created' })
+
 export interface Student {
   student_id: string
   first_name: string
@@ -112,6 +133,127 @@ export const studentDb = {
       return result.count
     } catch (error) {
       dbLogger.error('students', 'COUNT', error as Error)
+      throw error
+    }
+  },
+
+  // Get students by group ID
+  getByGroupId(group_id: string): Student[] {
+    try {
+      dbLogger.query('group_students', 'SELECT_BY_GROUP', { group_id })
+      const stmt = db.prepare(`
+        SELECT s.* FROM students s
+        INNER JOIN group_students gs ON s.student_id = gs.student_id
+        WHERE gs.group_id = ?
+        ORDER BY s.last_name, s.first_name
+      `)
+      const result = stmt.all(group_id) as Student[]
+      dbLogger.success('group_students', 'SELECT_BY_GROUP', { group_id, count: result.length })
+      return result
+    } catch (error) {
+      dbLogger.error('group_students', 'SELECT_BY_GROUP', error as Error, { group_id })
+      throw error
+    }
+  },
+
+  // Add student to group
+  addToGroup(group_id: string, student_id: string) {
+    try {
+      dbLogger.query('group_students', 'INSERT', { group_id, student_id })
+      const stmt = db.prepare(`
+        INSERT INTO group_students (group_id, student_id)
+        VALUES (?, ?)
+      `)
+      const result = stmt.run(group_id, student_id)
+      dbLogger.success('group_students', 'INSERT', { group_id, student_id })
+      return result
+    } catch (error) {
+      dbLogger.error('group_students', 'INSERT', error as Error, { group_id, student_id })
+      throw error
+    }
+  },
+
+  // Add multiple students to a group
+  addManyToGroup(group_id: string, student_ids: string[]) {
+    try {
+      dbLogger.query('group_students', 'INSERT_MANY', { group_id, count: student_ids.length })
+      const stmt = db.prepare(`
+        INSERT INTO group_students (group_id, student_id)
+        VALUES (?, ?)
+      `)
+      const insertMany = db.transaction((student_ids: string[]) => {
+        for (const student_id of student_ids) {
+          stmt.run(group_id, student_id)
+        }
+      })
+      insertMany(student_ids)
+      dbLogger.success('group_students', 'INSERT_MANY', { group_id, count: student_ids.length })
+    } catch (error) {
+      dbLogger.error('group_students', 'INSERT_MANY', error as Error, { group_id, count: student_ids.length })
+      throw error
+    }
+  },
+
+  // Remove student from group
+  removeFromGroup(group_id: string, student_id: string) {
+    try {
+      dbLogger.query('group_students', 'DELETE', { group_id, student_id })
+      const stmt = db.prepare(`
+        DELETE FROM group_students
+        WHERE group_id = ? AND student_id = ?
+      `)
+      const result = stmt.run(group_id, student_id)
+      dbLogger.success('group_students', 'DELETE', { group_id, student_id })
+      return result
+    } catch (error) {
+      dbLogger.error('group_students', 'DELETE', error as Error, { group_id, student_id })
+      throw error
+    }
+  },
+
+  // Remove all students from a group
+  removeAllFromGroup(group_id: string) {
+    try {
+      dbLogger.query('group_students', 'DELETE_ALL', { group_id })
+      const stmt = db.prepare(`DELETE FROM group_students WHERE group_id = ?`)
+      const result = stmt.run(group_id)
+      dbLogger.success('group_students', 'DELETE_ALL', { group_id })
+      return result
+    } catch (error) {
+      dbLogger.error('group_students', 'DELETE_ALL', error as Error, { group_id })
+      throw error
+    }
+  },
+
+  // Count students in a group
+  countByGroup(group_id: string): number {
+    try {
+      const stmt = db.prepare(`
+        SELECT COUNT(*) as count FROM group_students WHERE group_id = ?
+      `)
+      const result = stmt.get(group_id) as { count: number }
+      return result.count
+    } catch (error) {
+      dbLogger.error('group_students', 'COUNT', error as Error, { group_id })
+      throw error
+    }
+  },
+
+  // Delete specific students by their IDs
+  deleteByIds(student_ids: string[]) {
+    try {
+      dbLogger.query('students', 'DELETE_BY_IDS', { count: student_ids.length })
+      const stmt = db.prepare(`DELETE FROM students WHERE student_id = ?`)
+      const deleteMany = db.transaction((student_ids: string[]) => {
+        for (const student_id of student_ids) {
+          stmt.run(student_id)
+        }
+      })
+      const result = deleteMany(student_ids)
+      dbLogger.success('students', 'DELETE_BY_IDS', { count: student_ids.length })
+      return result
+    } catch (error) {
+      dbLogger.error('students', 'DELETE_BY_IDS', error as Error, { count: student_ids.length })
       throw error
     }
   }

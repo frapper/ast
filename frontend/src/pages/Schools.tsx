@@ -100,11 +100,14 @@ export function Schools() {
   const loadSchools = async () => {
     try {
       setError(null)
+      setLoading(true)
       const response = await schoolsApi.getSchools()
       setSchools(response.schools)
     } catch (err) {
       console.error('Error loading schools:', err)
       setError('Failed to load schools')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -274,8 +277,18 @@ export function Schools() {
           </CardContent>
         </Card>
 
+        {/* Full Page Loading Spinner */}
+        {loading && (
+          <div className="flex items-center justify-center py-24">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading schools...</p>
+            </div>
+          </div>
+        )}
+
         {/* Filter Panel */}
-        {schools.length > 0 && (
+        {!loading && schools.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -359,7 +372,7 @@ export function Schools() {
         )}
 
         {/* Schools Grid */}
-        {filteredSchools.length > 0 ? (
+        {!loading && filteredSchools.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredSchools.map((school) => {
               const isInList = mySchoolIds.has(school.school_id || '')
@@ -403,7 +416,7 @@ export function Schools() {
               )
             })}
           </div>
-        ) : schools.length > 0 && hasActiveFilters ? (
+        ) : !loading && schools.length > 0 && hasActiveFilters ? (
           <Card>
             <CardContent className="py-12">
               <div className="text-center text-muted-foreground">
@@ -418,7 +431,7 @@ export function Schools() {
         ) : null}
 
         {/* Empty State */}
-        {schools.length === 0 && !uploading && (
+        {!loading && schools.length === 0 && !uploading && (
           <Card>
             <CardContent className="py-12">
               <div className="text-center text-muted-foreground">

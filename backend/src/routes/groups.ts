@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { groupDb } from '../groupDb.js'
 import { userDb } from '../userDb.js'
+import { studentDb } from '../db.js'
+import { generateStudents } from '../studentGenerator.js'
 import { randomUUID } from 'crypto'
 import { apiLogger } from '../logger.js'
 
@@ -234,17 +236,174 @@ router.delete('/:groupId', (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' })
     }
 
-    // Delete group
+    // Get students in the group before deleting
+    const students = studentDb.getByGroupId(groupId)
+    const studentIds = students.map(s => s.student_id)
+
+    // Delete students from the students table
+    if (studentIds.length > 0) {
+      studentDb.deleteByIds(studentIds)
+    }
+
+    // Delete group (this also removes group_students relationships via CASCADE)
     const result = groupDb.delete(groupId)
 
-    apiLogger.response('DELETE', `/api/groups/${groupId}`, 200, { changes: result.changes })
+    apiLogger.response('DELETE', `/api/groups/${groupId}`, 200, {
+      changes: result.changes,
+      studentsDeleted: studentIds.length
+    })
     res.json({
       success: true,
-      message: 'Group deleted successfully'
+      message: `Group deleted successfully${studentIds.length > 0 ? ` along with ${studentIds.length} student${studentIds.length > 1 ? 's' : ''}` : ''}`
     })
   } catch (error) {
     apiLogger.error('DELETE', `/api/groups/${groupId}`, error as Error)
     res.status(500).json({ error: 'Failed to delete group' })
+  }
+})
+
+/**
+ * Get students for a specific group
+ */
+router.get('/:groupId/students', (req: Request, res: Response) => {
+  const groupId = String(req.params.groupId)
+
+  apiLogger.request('GET', `/api/groups/${groupId}/students`)
+
+  try {
+    if (!req.session?.user?.user_id) {
+      apiLogger.response('GET', `/api/groups/${groupId}/students`, 401)
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const user_id = req.session.user.user_id
+
+    // Verify group belongs to user
+    const group = groupDb.getByGroupId(groupId)
+    if (!group) {
+      apiLogger.response('GET', `/api/groups/${groupId}/students`, 404)
+      return res.status(404).json({ error: 'Group not found' })
+    }
+
+    if (group.user_id !== user_id) {
+      apiLogger.response('GET', `/api/groups/${groupId}/students`, 403)
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Get students for group
+    const students = studentDb.getByGroupId(groupId)
+
+    apiLogger.response('GET', `/api/groups/${groupId}/students`, 200, { count: students.length })
+    res.json({
+      success: true,
+      count: students.length,
+      students
+    })
+  } catch (error) {
+    apiLogger.error('GET', `/api/groups/${groupId}/students`, error as Error)
+    res.status(500).json({ error: 'Failed to fetch students' })
+  }
+})
+
+/**
+ * Generate synthetic students for a specific group
+ */
+router.post('/:groupId/students/generate', (req: Request, res: Response) => {
+  const groupId = String(req.params.groupId)
+  const { count } = req.body
+
+  apiLogger.request('POST', `/api/groups/${groupId}/students/generate`, { count })
+
+  try {
+    if (!req.session?.user?.user_id) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 401)
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const user_id = req.session.user.user_id
+
+    // Verify group belongs to user
+    const group = groupDb.getByGroupId(groupId)
+    if (!group) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 404)
+      return res.status(404).json({ error: 'Group not found' })
+    }
+
+    if (group.user_id !== user_id) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 403)
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Validate count
+    if (typeof count !== 'number' || count < 1 || count > 10000) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 400)
+      return res.status(400).json({
+        error: 'Count must be a number between 1 and 10000'
+      })
+    }
+
+    // Generate students
+    const students = generateStudents(count)
+
+    // Insert students into database
+    studentDb.insertMany(students)
+
+    // Add students to group
+    const studentIds = students.map(s => s.student_id)
+    studentDb.addManyToGroup(groupId, studentIds)
+
+    apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 200, { count: students.length })
+    res.json({
+      success: true,
+      count: students.length,
+      students
+    })
+  } catch (error) {
+    apiLogger.error('POST', `/api/groups/${groupId}/students/generate`, error as Error)
+    res.status(500).json({ error: 'Failed to generate students' })
+  }
+})
+
+/**
+ * Remove a student from a group
+ */
+router.delete('/:groupId/students/:studentId', (req: Request, res: Response) => {
+  const groupId = String(req.params.groupId)
+  const studentId = String(req.params.studentId)
+
+  apiLogger.request('DELETE', `/api/groups/${groupId}/students/${studentId}`)
+
+  try {
+    if (!req.session?.user?.user_id) {
+      apiLogger.response('DELETE', `/api/groups/${groupId}/students/${studentId}`, 401)
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const user_id = req.session.user.user_id
+
+    // Verify group belongs to user
+    const group = groupDb.getByGroupId(groupId)
+    if (!group) {
+      apiLogger.response('DELETE', `/api/groups/${groupId}/students/${studentId}`, 404)
+      return res.status(404).json({ error: 'Group not found' })
+    }
+
+    if (group.user_id !== user_id) {
+      apiLogger.response('DELETE', `/api/groups/${groupId}/students/${studentId}`, 403)
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Remove student from group
+    studentDb.removeFromGroup(groupId, studentId)
+
+    apiLogger.response('DELETE', `/api/groups/${groupId}/students/${studentId}`, 200)
+    res.json({
+      success: true,
+      message: 'Student removed from group'
+    })
+  } catch (error) {
+    apiLogger.error('DELETE', `/api/groups/${groupId}/students/${studentId}`, error as Error)
+    res.status(500).json({ error: 'Failed to remove student' })
   }
 })
 
