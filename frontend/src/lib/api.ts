@@ -16,7 +16,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 })
 
 export const studentsApi = {
@@ -82,6 +83,74 @@ export const schoolsApi = {
    */
   async deleteSchools(): Promise<DeleteSchoolsResponse> {
     const response = await api.delete<DeleteSchoolsResponse>('/api/schools')
+    return response.data
+  }
+}
+
+export const authApi = {
+  /**
+   * Login with username
+   */
+  async login(username: string) {
+    const response = await api.post('/api/auth/login', { username })
+    return response.data
+  },
+
+  /**
+   * Logout
+   */
+  async logout() {
+    const response = await api.post('/api/auth/logout')
+    return response.data
+  },
+
+  /**
+   * Get current user
+   */
+  async getMe() {
+    const response = await api.get('/api/auth/me')
+    return response.data
+  }
+}
+
+export const mySchoolsApi = {
+  /**
+   * Get user's saved schools
+   */
+  async getMySchools() {
+    const response = await api.get('/api/my-schools')
+    return response.data
+  },
+
+  /**
+   * Add school to user's list
+   */
+  async addSchool(schoolId: string) {
+    const response = await api.post(`/api/my-schools/${schoolId}`)
+    return response.data
+  },
+
+  /**
+   * Remove school from user's list
+   */
+  async removeSchool(schoolId: string) {
+    const response = await api.delete(`/api/my-schools/${schoolId}`)
+    return response.data
+  },
+
+  /**
+   * Check if school is in user's list
+   */
+  async checkSchool(schoolId: string) {
+    const response = await api.get(`/api/my-schools/check/${schoolId}`)
+    return response.data
+  },
+
+  /**
+   * Get all user's school IDs
+   */
+  async getSchoolIds() {
+    const response = await api.get('/api/my-schools/school-ids')
     return response.data
   }
 }

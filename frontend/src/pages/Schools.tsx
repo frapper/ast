@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SchoolCard, type School } from '@/components/SchoolCard'
-import { ArrowLeft, Trash2, Loader2, Building2, Upload, Filter, X, Search } from 'lucide-react'
-import { schoolsApi } from '@/lib/api'
+import { ArrowLeft, Trash2, Loader2, Building2, Upload, Filter, X, Search, Plus, Check } from 'lucide-react'
+import { schoolsApi, mySchoolsApi } from '@/lib/api'
 
 export function Schools() {
   const navigate = useNavigate()
@@ -15,6 +15,8 @@ export function Schools() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [mySchoolIds, setMySchoolIds] = useState<Set<string>>(new Set())
+  const [togglingSchool, setTogglingSchool] = useState<string | null>(null)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -27,7 +29,21 @@ export function Schools() {
   // Load existing schools on mount
   useEffect(() => {
     loadSchools()
+    loadMySchoolIds()
   }, [])
+
+  // Load user's saved school IDs
+  const loadMySchoolIds = async () => {
+    try {
+      const response = await mySchoolsApi.getSchoolIds()
+      setMySchoolIds(new Set(response.schoolIds))
+    } catch (err: any) {
+      // Ignore auth errors - user might not be logged in
+      if (err.response?.status !== 401) {
+        console.error('Error loading my school IDs:', err)
+      }
+    }
+  }
 
   // Get unique school types for filter dropdown
   const schoolTypes = useMemo(() => {
@@ -148,6 +164,31 @@ export function Schools() {
 
   const handleGoBack = () => {
     navigate('/')
+  }
+
+  const handleToggleMySchool = async (schoolId: string) => {
+    const isInList = mySchoolIds.has(schoolId)
+
+    try {
+      setTogglingSchool(schoolId)
+
+      if (isInList) {
+        await mySchoolsApi.removeSchool(schoolId)
+        setMySchoolIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(schoolId)
+          return newSet
+        })
+      } else {
+        await mySchoolsApi.addSchool(schoolId)
+        setMySchoolIds(prev => new Set(prev).add(schoolId))
+      }
+    } catch (err: any) {
+      console.error('Error toggling school:', err)
+      setError(err.response?.data?.error || `Failed to ${isInList ? 'remove' : 'add'} school`)
+    } finally {
+      setTogglingSchool(null)
+    }
   }
 
   return (
@@ -320,9 +361,47 @@ export function Schools() {
         {/* Schools Grid */}
         {filteredSchools.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredSchools.map((school) => (
-              <SchoolCard key={school.id || school.school_id} school={school} />
-            ))}
+            {filteredSchools.map((school) => {
+              const isInList = mySchoolIds.has(school.school_id || '')
+              const isToggling = togglingSchool === school.school_id
+
+              return (
+                <Card key={school.id || school.school_id} className="flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="text-lg">{school.school_name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <SchoolCard school={school} />
+                  </CardContent>
+                  <CardContent className="pt-0 border-t">
+                    <Button
+                      variant={isInList ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleToggleMySchool(school.school_id || '')}
+                      disabled={isToggling}
+                    >
+                      {isToggling ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {isInList ? 'Removing...' : 'Adding...'}
+                        </>
+                      ) : isInList ? (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Added
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add to My Schools
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         ) : schools.length > 0 && hasActiveFilters ? (
           <Card>
