@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import studentRoutes from './routes/students'
+import schoolRoutes from './routes/schools'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -13,6 +14,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/students', studentRoutes)
+app.use('/api/schools', schoolRoutes)
 
 // Health check
 app.get('/api/health', (_req, res) => {

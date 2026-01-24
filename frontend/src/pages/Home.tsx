@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StudentIllustration } from '@/components/StudentIllustration'
+import { SchoolIllustration } from '@/components/SchoolIllustration'
 import { GraduationCap } from 'lucide-react'
 
 export function Home() {
@@ -9,6 +10,10 @@ export function Home() {
 
   const handleStudentClick = () => {
     navigate('/student')
+  }
+
+  const handleSchoolsClick = () => {
+    navigate('/schools')
   }
 
   return (
@@ -34,6 +39,17 @@ export function Home() {
           </CardHeader>
           <CardContent className="flex justify-center">
             <StudentIllustration onClick={handleStudentClick} />
+          </CardContent>
+        </Card>
+
+        {/* Schools Navigation Card */}
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Manage Schools</CardTitle>
+            <CardDescription>Click the school icon below to access the school directory</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <SchoolIllustration onClick={handleSchoolsClick} />
           </CardContent>
         </Card>
 
