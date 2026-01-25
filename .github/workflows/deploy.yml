@@ -21,13 +21,13 @@ jobs:
     - name: Build
       run: npm run build
 
-    - name: Copy Build
+    - name: Copy front end Build
       uses: appleboy/scp-action@v0.1.4
       with:
           host: ast.frapper.co.nz
           username: azureuser
           key: ${{ secrets.AST_SSH}}
-          source: "dist"
+          source: "/frontend/dist"
           target: "/var/www/html/ast.frapper.co.nz"
           strip_components: 1
       
