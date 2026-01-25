@@ -27,7 +27,7 @@ jobs:
           host: ast.frapper.co.nz
           username: azureuser
           key: ${{ secrets.AST_SSH}}
-          source: "/frontend/dist"
+          source: "frontend/dist"
           target: "/var/www/html/ast.frapper.co.nz"
           strip_components: 1
       
