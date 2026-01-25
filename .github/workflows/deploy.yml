@@ -11,7 +11,7 @@ jobs:
       with:
         node-version: '24.12'
     - name: Install Dependencies
-      run: npm ci
+      run: npm install
 
     - name: Build
       run: npm run build
