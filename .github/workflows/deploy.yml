@@ -28,7 +28,7 @@ jobs:
           username: azureuser
           key: ${{ secrets.AST_SSH}}
           source: "frontend/dist"
-          target: "/var/www/html/ast.frapper.co.nz"
+          target: "/var/www/html/ast.camberit.co.nz"
           strip_components: 1
       
     
