@@ -24,7 +24,7 @@ jobs:
     - name: Copy front end Build
       uses: appleboy/scp-action@v0.1.4
       with:
-          host: ast.frapper.co.nz
+          host: ast.camberit.co.nz
           username: azureuser
           key: ${{ secrets.AST_SSH}}
           source: "frontend/dist"
