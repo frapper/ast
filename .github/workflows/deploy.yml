@@ -19,7 +19,7 @@ jobs:
       run: npm install
     - name: create .env.production
       run : |
-         echo "VITE_API_URL=https://ast.camberit.co.nz" >> .env.production
+         echo "VITE_API_URL=https://ast.camberit.co.nz:3002" >> .env.production
         
     - name: Build
       run: npm run build
