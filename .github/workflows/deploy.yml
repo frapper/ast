@@ -19,9 +19,9 @@ jobs:
       run: npm install
     - name: create .env.production
       run : |
-         echo "PORT=3001 >> .env.production
-         echo "FRONTEND_URL="https://ast.camberit.co.nz" >> .env.production
-         echo "SESSION_SECRET=${{ secrets.SESSION_KEY}} >> .env.production
+         echo "PORT=3001" >> .env.production
+         echo "FRONTEND_URL=https://ast.camberit.co.nz" >> .env.production
+         echo "SESSION_SECRET=${{ secrets.SESSION_KEY}}" >> .env.production
          echo "NODE ENV=production" >> .env.production
          echo LOG_LEVEL=info >> .env.production
         
