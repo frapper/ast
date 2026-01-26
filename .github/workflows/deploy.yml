@@ -29,6 +29,15 @@ jobs:
           key: ${{ secrets.AST_SSH}}
           source: "frontend/dist/**"
           target: "/var/www/html/ast.camberit.co.nz"
-          strip_components: 2
+    
+    - name: Copy Server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+          host: ast.camberit.co.nz
+          username: azureuser
+          key: ${{ secrets.AST_SSH}}
+          source: "backend/dist/**"
+          target: "~/astserver"
+  
       
     
