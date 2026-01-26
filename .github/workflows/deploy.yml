@@ -36,7 +36,7 @@ jobs:
           host: ast.camberit.co.nz
           username: azureuser
           key: ${{ secrets.AST_SSH}}
-          source: "backend/dist/**"
+          source: "backend/**"
           target: "~/astserver"
   
       
