@@ -19,11 +19,7 @@ jobs:
       run: npm install
     - name: create .env.production
       run : |
-         echo "PORT=3002" >> .env.production
-         echo "FRONTEND_URL=https://ast.camberit.co.nz/api" >> .env.production
-         echo "SESSION_SECRET=${{ secrets.SESSION_KEY}}" >> .env.production
-         echo "NODE ENV=production" >> .env.production
-         echo "LOG_LEVEL=debug" >> .env.production
+         echo "VITE_API_URL=https://ast.camberit.co.nz" >> .env.production
         
     - name: Build
       run: npm run build
