@@ -342,8 +342,11 @@ router.post('/:groupId/students/generate', (req: Request, res: Response) => {
       })
     }
 
-    // Generate students
-    const students = generateStudents(count)
+    // Get existing NSNs for this user's groups in the school
+    const existingNSNs = studentDb.getNSNsByUserSchool(user_id, group.school_id)
+
+    // Generate students with unique NSNs
+    const students = generateStudents(count, existingNSNs)
 
     // Insert students into database
     studentDb.insertMany(students)

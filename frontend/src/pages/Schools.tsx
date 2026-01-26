@@ -17,6 +17,7 @@ export function Schools() {
   const [success, setSuccess] = useState<string | null>(null)
   const [mySchoolIds, setMySchoolIds] = useState<Set<string>>(new Set())
   const [togglingSchool, setTogglingSchool] = useState<string | null>(null)
+  const [showOnlyMySchools, setShowOnlyMySchools] = useState(false)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -54,6 +55,11 @@ export function Schools() {
   // Filter schools based on filters
   const filteredSchools = useMemo(() => {
     return schools.filter(school => {
+      // My Schools filter
+      if (showOnlyMySchools && !mySchoolIds.has(school.school_id || '')) {
+        return false
+      }
+
       // School name filter (wildcard support)
       if (filters.schoolName) {
         const searchLower = filters.schoolName.toLowerCase().replace(/\*/g, '')
@@ -84,7 +90,7 @@ export function Schools() {
 
       return true
     })
-  }, [schools, filters])
+  }, [schools, filters, showOnlyMySchools, mySchoolIds])
 
   const hasActiveFilters = filters.schoolName || filters.minRoll || filters.maxRoll || filters.schoolType
 
@@ -313,19 +319,35 @@ export function Schools() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* School Name Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Search className="h-4 w-4" />
-                    School Name
-                  </label>
-                  <Input
-                    placeholder="Search name... (* for wildcard)"
-                    value={filters.schoolName}
-                    onChange={(e) => setFilters({ ...filters, schoolName: e.target.value })}
+              <div className="space-y-4">
+                {/* My Schools Toggle */}
+                <div className="flex items-center gap-2 pb-4 border-b">
+                  <input
+                    type="checkbox"
+                    id="mySchoolsOnly"
+                    checked={showOnlyMySchools}
+                    onChange={(e) => setShowOnlyMySchools(e.target.checked)}
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
                   />
-                  <p className="text-xs text-muted-foreground">Use * as wildcard</p>
+                  <label htmlFor="mySchoolsOnly" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Show only my schools ({mySchoolIds.size})
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* School Name Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      School Name
+                    </label>
+                    <Input
+                      placeholder="Search name... (* for wildcard)"
+                      value={filters.schoolName}
+                      onChange={(e) => setFilters({ ...filters, schoolName: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">Use * as wildcard</p>
                 </div>
 
                 {/* Min Roll Size Filter */}
@@ -366,6 +388,7 @@ export function Schools() {
                     ))}
                   </select>
                 </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -379,40 +402,33 @@ export function Schools() {
               const isToggling = togglingSchool === school.school_id
 
               return (
-                <Card key={school.id || school.school_id} className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{school.school_name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <SchoolCard school={school} />
-                  </CardContent>
-                  <CardContent className="pt-0 border-t">
-                    <Button
-                      variant={isInList ? "default" : "outline"}
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleToggleMySchool(school.school_id || '')}
-                      disabled={isToggling}
-                    >
-                      {isToggling ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isInList ? 'Removing...' : 'Adding...'}
-                        </>
-                      ) : isInList ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Added
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add to My Schools
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div key={school.id || school.school_id} className="flex flex-col gap-2">
+                  <SchoolCard school={school} isInList={isInList} />
+                  <Button
+                    variant={isInList ? "default" : "outline"}
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleToggleMySchool(school.school_id || '')}
+                    disabled={isToggling}
+                  >
+                    {isToggling ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isInList ? 'Removing...' : 'Adding...'}
+                      </>
+                    ) : isInList ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add to My Schools
+                      </>
+                    )}
+                  </Button>
+                </div>
               )
             })}
           </div>

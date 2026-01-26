@@ -43,9 +43,9 @@ export function generateStudent(): Student {
 /**
  * Generate N random students
  */
-export function generateStudents(count: number): Student[] {
+export function generateStudents(count: number, existingNSNs: string[] = []): Student[] {
   const students: Student[] = []
-  const usedNSNs = new Set<string>()
+  const usedNSNs = new Set(existingNSNs)
   const usedStudentIds = new Set<string>()
 
   for (let i = 0; i < count; i++) {

@@ -256,5 +256,25 @@ export const studentDb = {
       dbLogger.error('students', 'DELETE_BY_IDS', error as Error, { count: student_ids.length })
       throw error
     }
+  },
+
+  // Get all NSNs for a user's groups in a specific school
+  getNSNsByUserSchool(user_id: string, school_id: string): string[] {
+    try {
+      dbLogger.query('students', 'SELECT_NSN_BY_USER_SCHOOL', { user_id, school_id })
+      const stmt = db.prepare(`
+        SELECT DISTINCT s.nsn
+        FROM students s
+        INNER JOIN group_students gs ON s.student_id = gs.student_id
+        INNER JOIN groups g ON gs.group_id = g.group_id
+        WHERE g.user_id = ? AND g.school_id = ?
+      `)
+      const result = stmt.all(user_id, school_id) as { nsn: string }[]
+      dbLogger.success('students', 'SELECT_NSN_BY_USER_SCHOOL', { user_id, school_id, count: result.length })
+      return result.map(r => r.nsn)
+    } catch (error) {
+      dbLogger.error('students', 'SELECT_NSN_BY_USER_SCHOOL', error as Error, { user_id, school_id })
+      throw error
+    }
   }
 }

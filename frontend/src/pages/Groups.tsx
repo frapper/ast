@@ -46,6 +46,9 @@ export function Groups() {
   const [generating, setGenerating] = useState(false)
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
   const [studentCount, setStudentCount] = useState(20)
+  const [editingStudent, setEditingStudent] = useState<string | null>(null)
+  const [editedStudent, setEditedStudent] = useState<Partial<Student>>({})
+  const [deletingStudent, setDeletingStudent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -125,12 +128,14 @@ export function Groups() {
       setGenerating(true)
       setGenerateDialogOpen(false)
       const response = await groupsApi.generateStudentsForGroup(selectedGroupId, studentCount)
-      setStudents(response.students)
+
+      // Add new students to existing list
+      setStudents(prev => [...prev, ...response.students])
 
       // Update student count for this group
       setStudentCounts(prev => ({
         ...prev,
-        [selectedGroupId]: response.students.length
+        [selectedGroupId]: (prev[selectedGroupId] || 0) + response.students.length
       }))
 
       setSuccess(`Generated ${response.count} students`)
@@ -150,6 +155,71 @@ export function Groups() {
 
   const handleGenerateAST = () => {
     alert('Generate')
+  }
+
+  const handleStartEditStudent = (student: Student) => {
+    setEditingStudent(student.student_id)
+    setEditedStudent({ ...student })
+  }
+
+  const handleCancelEditStudent = () => {
+    setEditingStudent(null)
+    setEditedStudent({})
+  }
+
+  const handleSaveStudent = async () => {
+    if (!editedStudent.student_id || !selectedGroupId) return
+
+    // Validate required fields
+    if (!editedStudent.first_name?.trim() || !editedStudent.last_name?.trim()) {
+      setError('First name and last name are required')
+      return
+    }
+
+    try {
+      setError(null)
+      // Update local state
+      setStudents(prev => prev.map(s =>
+        s.student_id === editedStudent.student_id ? { ...s, ...editedStudent } as Student : s
+      ))
+      setEditingStudent(null)
+      setEditedStudent({})
+      setSuccess('Student updated successfully')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err: any) {
+      console.error('Error updating student:', err)
+      setError('Failed to update student')
+    }
+  }
+
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+    if (!selectedGroupId) return
+    if (!confirm(`Remove "${studentName}" from this group?`)) {
+      return
+    }
+
+    try {
+      setError(null)
+      setDeletingStudent(studentId)
+      await groupsApi.removeStudentFromGroup(selectedGroupId, studentId)
+
+      // Update local state
+      setStudents(prev => prev.filter(s => s.student_id !== studentId))
+
+      // Update student count
+      setStudentCounts(prev => ({
+        ...prev,
+        [selectedGroupId]: (prev[selectedGroupId] || 0) - 1
+      }))
+
+      setSuccess('Student removed from group')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err: any) {
+      console.error('Error removing student:', err)
+      setError(err.response?.data?.error || 'Failed to remove student')
+    } finally {
+      setDeletingStudent(null)
+    }
   }
 
   const handleCreateGroup = async () => {
@@ -339,6 +409,39 @@ export function Groups() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Sidebar - Group List */}
           <div className="lg:col-span-1 space-y-4">
+            {/* Create Group Button */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <Input
+                    placeholder="New group name..."
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={creating}
+                    maxLength={100}
+                  />
+                  <Button
+                    className="w-full"
+                    onClick={handleCreateGroup}
+                    disabled={creating || !newGroupName.trim()}
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Group
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Groups ({groups.length})</h2>
             </div>
@@ -433,39 +536,6 @@ export function Groups() {
               </div>
             )}
 
-            {/* Create Group Button */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Input
-                    placeholder="New group name..."
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={creating}
-                    maxLength={100}
-                  />
-                  <Button
-                    className="w-full"
-                    onClick={handleCreateGroup}
-                    disabled={creating || !newGroupName.trim()}
-                  >
-                    {creating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2 h-4 w-4" />
-                        New Group
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             <div className="text-xs text-muted-foreground">
               <p>Groups are specific to this school.</p>
               <p>Group names must be unique per school.</p>
@@ -475,15 +545,26 @@ export function Groups() {
           {/* Right Content - Selected Group or Empty State */}
           <div className="lg:col-span-2">
             <Card>
-              <CardContent className="py-12">
+              <CardContent className="pt-6 pb-12 px-6">
                 {selectedGroupId ? (
                   <div>
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-semibold">
-                        {groups.find(g => g.group_id === selectedGroupId)?.group_name}
-                      </h2>
-                      <div className="text-sm text-muted-foreground">
-                        {studentCounts[selectedGroupId] || 0} student{(studentCounts[selectedGroupId] || 0) !== 1 ? 's' : ''}
+                      <h2 className="text-2xl font-semibold">Students</h2>
+                      <div className="flex items-center gap-3">
+                        {(studentCounts[selectedGroupId] || 0) > 0 && (
+                          <Button
+                            onClick={handleOpenGenerateDialog}
+                            disabled={generating}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add More Students
+                          </Button>
+                        )}
+                        <div className="text-sm text-muted-foreground">
+                          {studentCounts[selectedGroupId] || 0} student{(studentCounts[selectedGroupId] || 0) !== 1 ? 's' : ''}
+                        </div>
                       </div>
                     </div>
 
@@ -508,22 +589,107 @@ export function Groups() {
                       <div className="space-y-2">
                         {students.map((student) => (
                           <Card key={student.student_id} className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium">
-                                  {student.first_name} {student.last_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {student.level} • {student.gender}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  ID: {student.student_id}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  NSN: {student.nsn}
-                                </p>
+                            {editingStudent === student.student_id ? (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">First Name</label>
+                                    <Input
+                                      value={editedStudent.first_name || ''}
+                                      onChange={(e) => setEditedStudent({ ...editedStudent, first_name: e.target.value })}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">Last Name</label>
+                                    <Input
+                                      value={editedStudent.last_name || ''}
+                                      onChange={(e) => setEditedStudent({ ...editedStudent, last_name: e.target.value })}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">Level</label>
+                                    <select
+                                      value={editedStudent.level || ''}
+                                      onChange={(e) => setEditedStudent({ ...editedStudent, level: e.target.value })}
+                                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                    >
+                                      <option value="Year 3">Year 3</option>
+                                      <option value="Year 4">Year 4</option>
+                                      <option value="Year 5">Year 5</option>
+                                      <option value="Year 6">Year 6</option>
+                                      <option value="Year 7">Year 7</option>
+                                      <option value="Year 8">Year 8</option>
+                                      <option value="Year 9">Year 9</option>
+                                      <option value="Year 10">Year 10</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-muted-foreground">Gender</label>
+                                    <select
+                                      value={editedStudent.gender || ''}
+                                      onChange={(e) => setEditedStudent({ ...editedStudent, gender: e.target.value })}
+                                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                    >
+                                      <option value="Male">Male</option>
+                                      <option value="Female">Female</option>
+                                      <option value="Non-binary">Non-binary</option>
+                                      <option value="Other">Other</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" onClick={handleSaveStudent}>
+                                    <Check className="mr-1 h-3 w-3" />
+                                    Save
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={handleCancelEditStudent}>
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
+                            ) : (
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium">
+                                    {student.first_name} {student.last_name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {student.level} • {student.gender}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    ID: {student.student_id}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    NSN: {student.nsn}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleStartEditStudent(student)}
+                                  >
+                                    <Layers className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteStudent(student.student_id, `${student.first_name} ${student.last_name}`)}
+                                    disabled={deletingStudent === student.student_id}
+                                  >
+                                    {deletingStudent === student.student_id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </Card>
                         ))}
                       </div>
@@ -532,10 +698,9 @@ export function Groups() {
                 ) : (
                   <div className="text-center">
                     <Layers className="h-24 w-24 mx-auto mb-6 text-primary opacity-50" />
-                    <h2 className="text-2xl font-semibold mb-3">Manage Your Groups</h2>
+                    <h2 className="text-2xl font-semibold mb-3">Select a Group to view or add students</h2>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      Create groups to organize students or classes within {schoolName}.
-                      Select a group from the list on the left to manage its students.
+                      Choose a group from the list on the left to manage its students.
                     </p>
                     {groups.length > 0 && (
                       <div className="mt-6 p-4 bg-muted rounded-lg inline-block">
