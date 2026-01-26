@@ -27,7 +27,7 @@ jobs:
     - name: Clear previous deployment (optional, but recommended)
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ast.frapper.co.nz
+          host: ast.camberit.co.nz
           username: azureuser
           key: ${{ secrets.AST_SSH}}
           script: |
