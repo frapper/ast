@@ -30,8 +30,12 @@ function validateEnv() {
   }
 
   // Log environment configuration
+  console.log('='.repeat(50))
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`API URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
+  console.log(`PORT: ${process.env.PORT || 3001}`)
+  console.log(`FRONTEND_URL (CORS): ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
+  console.log(`SESSION_SECRET: ${process.env.SESSION_SECRET ? '***SET***' : 'NOT SET'}`)
+  console.log('='.repeat(50))
 }
 
 validateEnv()
@@ -40,10 +44,15 @@ const app = express()
 const PORT = process.env.PORT || 3001
 
 // Middleware
-app.use(cors({
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
-}))
+}
+
+// Log CORS configuration for debugging
+console.log(`CORS configured for origin: ${corsOptions.origin}`)
+
+app.use(cors(corsOptions))
 app.use(express.json())
 
 // Session configuration

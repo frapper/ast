@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.2.0",
+    "axios": "^1.13.3",
     "better-sqlite3": "^12.6.2",
     "cors": "^2.8.6",
     "csv-parser": "^3.2.0",
