@@ -1,3 +1,4 @@
+import './config'
 import { startServer } from './server'
 
 const server = startServer()
