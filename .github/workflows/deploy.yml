@@ -34,6 +34,15 @@ jobs:
           target: "/var/www/html/ast.camberit.co.nz"
           strip_components: 2
           
+    - name: env server
+      run : |
+        echo "PORT=3001" >> /backend/.env.production
+        echo "FRONTEND_URL=https://ast.camberit.co.nz" >> /backend/.env.production
+        echo "SESSION_SECRET=CHANGE_THIS_TO_A_SECURE_RANDOM_STRING" >> /backend/.env.production
+        echo "NODE_ENV=production" >> /backend/.env.production
+        echo "LOG_LEVEL=debug" >> /backend/.env.production
+      
+    
     
     - name: Copy Server
       uses: appleboy/scp-action@v0.1.4
@@ -43,6 +52,8 @@ jobs:
           key: ${{ secrets.AST_SSH}}
           source: "backend/**"
           target: "~/astserver"
-  
+          stip_components: 1
+      
+     
       
     
