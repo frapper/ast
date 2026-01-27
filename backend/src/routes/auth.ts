@@ -8,22 +8,24 @@ const router = Router()
 
 /**
  * Login endpoint
- * Creates or retrieves user based on email
+ * Creates or retrieves user based on email or username
  * Returns a JWT token
  */
 router.post('/login', (req: Request, res: Response) => {
-  const { email } = req.body
+  // Accept both 'email' and 'username' for backward compatibility
+  const { email, username } = req.body
+  const emailOrUsername = email || username
 
-  apiLogger.request('POST', '/api/auth/login', { email })
+  apiLogger.request('POST', '/api/auth/login', { emailOrUsername })
 
   try {
     // Validate email
-    if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    if (!emailOrUsername || typeof emailOrUsername !== 'string' || emailOrUsername.trim().length === 0) {
       apiLogger.response('POST', '/api/auth/login', 400, { error: 'Email is required' })
       return res.status(400).json({ error: 'Email is required' })
     }
 
-    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedEmail = emailOrUsername.trim().toLowerCase()
 
     // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
