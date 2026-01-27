@@ -30,29 +30,36 @@ router.post('/login', (req: Request, res: Response) => {
     // Get or create user
     const user = getOrCreateUser(trimmedUsername)
 
-    // Set session
-    if (req.session) {
-      req.session.user = {
-        user_id: user.user_id,
-        username: user.username
-      }
-      console.log('[DEBUG] Login session set:', {
-        sessionId: req.sessionID,
-        userId: user.user_id,
-        username: user.username,
-        cookie: req.session.cookie
-      })
-    } else {
-      console.log('[DEBUG] ERROR: No session object available!')
+    // Set session - explicitly save it before responding
+    req.session.user = {
+      user_id: user.user_id,
+      username: user.username
     }
 
-    apiLogger.response('POST', '/api/auth/login', 200, { user_id: user.user_id, username: user.username })
-    res.json({
-      success: true,
-      user: {
-        user_id: user.user_id,
-        username: user.username
+    console.log('[DEBUG] Login session set:', {
+      sessionId: req.sessionID,
+      userId: user.user_id,
+      username: user.username,
+      cookie: req.session.cookie
+    })
+
+    // Save the session explicitly before responding
+    req.session.save((err) => {
+      if (err) {
+        console.error('[ERROR] Failed to save session:', err)
+        apiLogger.error('POST', '/api/auth/login', err)
+        return res.status(500).json({ error: 'Failed to save session' })
       }
+
+      console.log('[DEBUG] Session saved successfully')
+      apiLogger.response('POST', '/api/auth/login', 200, { user_id: user.user_id, username: user.username })
+      res.json({
+        success: true,
+        user: {
+          user_id: user.user_id,
+          username: user.username
+        }
+      })
     })
   } catch (error) {
     apiLogger.error('POST', '/api/auth/login', error as Error)
