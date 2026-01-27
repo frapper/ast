@@ -1,5 +1,4 @@
 import express from 'express'
-import session from 'express-session'
 import studentRoutes from './routes/students.js'
 import schoolRoutes from './routes/schools.js'
 import authRoutes from './routes/auth.js'
@@ -8,22 +7,13 @@ import groupsRoutes from './routes/groups.js'
 
 // Environment validation
 function validateEnv() {
-  const isProduction = process.env.NODE_ENV === 'production'
-
-  // Check for insecure session secret in production
-  if (isProduction) {
-    const sessionSecret = process.env.SESSION_SECRET || ''
-    const insecureSecrets = [
-      'my-schools-secret-key-change-in-production',
-      'dev-secret-key-change-in-production',
-      'change-this-in-production',
-      'change-this-in-production-use-a-secure-random-string'
-    ]
-
-    if (!sessionSecret || insecureSecrets.includes(sessionSecret)) {
+  // Check for JWT secret
+  if (process.env.NODE_ENV === 'production') {
+    const jwtSecret = process.env.JWT_SECRET || ''
+    if (!jwtSecret || jwtSecret === 'change-this-in-production') {
       throw new Error(
-        'SESSION_SECRET must be set to a secure random string in production. ' +
-        'Generate one with: openssl rand -base64 32'
+        'JWT_SECRET must be set to a secure random string in production. ' +
+        'Generate one with: openssl rand -base64 64'
       )
     }
   }
@@ -33,7 +23,7 @@ function validateEnv() {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`PORT: ${process.env.PORT || 3001}`)
   console.log(`FRONTEND_URL (CORS): ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
-  console.log(`SESSION_SECRET: ${process.env.SESSION_SECRET ? '***SET***' : 'NOT SET'}`)
+  console.log(`JWT_SECRET: ${process.env.JWT_SECRET ? '***SET***' : 'NOT SET'}`)
   console.log('='.repeat(50))
 }
 
@@ -45,7 +35,7 @@ const PORT = process.env.PORT || 3001
 // Middleware
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  credentials: false  // JWT tokens in localStorage, no credentials needed
 }
 
 // Log CORS configuration for debugging
@@ -86,7 +76,6 @@ app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', origin)
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-      res.header('Access-Control-Allow-Credentials', 'true')
 
       if (req.method === 'OPTIONS') {
         res.sendStatus(200)
@@ -103,34 +92,6 @@ app.use((req, res, next) => {
 })
 
 app.use(express.json())
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'my-schools-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-origin cookies in production
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true
-  }
-}))
-
-// Session debug middleware (must be after session configuration)
-app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-  if (req.path.startsWith('/api/') && req.method !== 'OPTIONS') {
-    console.log(`[SESSION DEBUG] ${req.method} ${req.path}`, {
-      hasSession: !!req.session,
-      sessionId: req.sessionID,
-      hasUser: !!req.session?.user,
-      userId: req.session?.user?.user_id,
-      origin: req.headers.origin,
-      cookieHeader: req.headers.cookie ? 'present' : 'missing'
-    })
-  }
-  next()
-})
 
 // Routes
 app.use('/api/students', studentRoutes)

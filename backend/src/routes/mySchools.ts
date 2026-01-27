@@ -2,8 +2,12 @@ import { Router, Request, Response } from 'express'
 import { userDb } from '../userDb.js'
 import { schoolDb } from '../schoolDb.js'
 import { apiLogger } from '../logger.js'
+import { requireAuth } from '../middleware/jwtAuth.js'
 
 const router = Router()
+
+// All routes in this router require authentication
+router.use(requireAuth)
 
 /**
  * Get all schools for the current user
@@ -12,12 +16,7 @@ router.get('/', (req: Request, res: Response) => {
   apiLogger.request('GET', '/api/my-schools')
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', '/api/my-schools', 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
-
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const schools = userDb.getUserSchools(user_id)
 
     apiLogger.response('GET', '/api/my-schools', 200, { count: schools.length })
@@ -38,28 +37,10 @@ router.get('/', (req: Request, res: Response) => {
 router.post('/:schoolId', (req: Request, res: Response) => {
   const schoolId = String(req.params.schoolId)
 
-  apiLogger.request('POST', `/api/my-schools/${schoolId}`, {
-    sessionExists: !!req.session,
-    userExists: !!req.session?.user,
-    userId: req.session?.user?.user_id
-  })
+  apiLogger.request('POST', `/api/my-schools/${schoolId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      console.log('[DEBUG] Session details:', {
-        hasSession: !!req.session,
-        sessionId: req.sessionID,
-        sessionData: req.session,
-        cookie: req.session?.cookie
-      })
-      apiLogger.response('POST', `/api/my-schools/${schoolId}`, 401, {
-        hasSession: !!req.session,
-        hasUser: !!req.session?.user
-      })
-      return res.status(401).json({ error: 'Authentication required' })
-    }
-
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Check if school exists
     const schools = schoolDb.getAll()
@@ -99,12 +80,8 @@ router.delete('/:schoolId', (req: Request, res: Response) => {
   apiLogger.request('DELETE', `/api/my-schools/${schoolId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('DELETE', `/api/my-schools/${schoolId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const result = userDb.removeSchool(user_id, schoolId)
 
     if (result.changes === 0) {
@@ -132,12 +109,8 @@ router.get('/check/:schoolId', (req: Request, res: Response) => {
   apiLogger.request('GET', `/api/my-schools/check/${schoolId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', `/api/my-schools/check/${schoolId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const isInList = userDb.checkSchool(user_id, schoolId)
 
     apiLogger.response('GET', `/api/my-schools/check/${schoolId}`, 200, { schoolId, isInList })
@@ -158,12 +131,8 @@ router.get('/school-ids', (req: Request, res: Response) => {
   apiLogger.request('GET', '/api/my-schools/school-ids')
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', '/api/my-schools/school-ids', 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const schoolIds = userDb.getUserSchoolIds(user_id)
 
     apiLogger.response('GET', '/api/my-schools/school-ids', 200, { count: schoolIds.length })

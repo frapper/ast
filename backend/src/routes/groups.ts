@@ -5,8 +5,12 @@ import { studentDb } from '../db.js'
 import { generateStudents } from '../studentGenerator.js'
 import { randomUUID } from 'crypto'
 import { apiLogger } from '../logger.js'
+import { requireAuth } from '../middleware/jwtAuth.js'
 
 const router = Router()
+
+// All routes in this router require authentication
+router.use(requireAuth)
 
 /**
  * Get all groups for a specific school
@@ -17,12 +21,7 @@ router.get('/school/:schoolId', (req: Request, res: Response) => {
   apiLogger.request('GET', `/api/groups/school/${schoolId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', `/api/groups/school/${schoolId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
-
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const groups = groupDb.getBySchool(user_id, schoolId)
 
     apiLogger.response('GET', `/api/groups/school/${schoolId}`, 200, { count: groups.length })
@@ -44,12 +43,8 @@ router.get('/user', (req: Request, res: Response) => {
   apiLogger.request('GET', '/api/groups/user')
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', '/api/groups/user', 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
     const groups = groupDb.getAllByUser(user_id)
 
     // Group by school_id
@@ -82,12 +77,8 @@ router.post('/', (req: Request, res: Response) => {
   apiLogger.request('POST', '/api/groups', { school_id, group_name })
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('POST', '/api/groups', 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Validate inputs
     if (!school_id || typeof school_id !== 'string') {
@@ -157,12 +148,8 @@ router.put('/:groupId', (req: Request, res: Response) => {
   apiLogger.request('PUT', `/api/groups/${groupId}`, { group_name })
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('PUT', `/api/groups/${groupId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Validate inputs
     if (!group_name || typeof group_name !== 'string') {
@@ -217,12 +204,8 @@ router.delete('/:groupId', (req: Request, res: Response) => {
   apiLogger.request('DELETE', `/api/groups/${groupId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('DELETE', `/api/groups/${groupId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Verify group belongs to user
     const group = groupDb.getByGroupId(groupId)
@@ -271,12 +254,8 @@ router.get('/:groupId/students', (req: Request, res: Response) => {
   apiLogger.request('GET', `/api/groups/${groupId}/students`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('GET', `/api/groups/${groupId}/students`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Verify group belongs to user
     const group = groupDb.getByGroupId(groupId)
@@ -315,12 +294,8 @@ router.post('/:groupId/students/generate', (req: Request, res: Response) => {
   apiLogger.request('POST', `/api/groups/${groupId}/students/generate`, { count })
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Verify group belongs to user
     const group = groupDb.getByGroupId(groupId)
@@ -377,12 +352,8 @@ router.delete('/:groupId/students/:studentId', (req: Request, res: Response) => 
   apiLogger.request('DELETE', `/api/groups/${groupId}/students/${studentId}`)
 
   try {
-    if (!req.session?.user?.user_id) {
-      apiLogger.response('DELETE', `/api/groups/${groupId}/students/${studentId}`, 401)
-      return res.status(401).json({ error: 'Authentication required' })
-    }
 
-    const user_id = req.session.user.user_id
+    const user_id = req.user!.user_id
 
     // Verify group belongs to user
     const group = groupDb.getByGroupId(groupId)

@@ -1,65 +1,54 @@
 import { Router, Request, Response } from 'express'
-import { getOrCreateUser } from '../middleware/auth.js'
+import { getOrCreateUserByEmail } from '../userDb.js'
+import { generateToken } from '../utils/jwt.js'
+import { requireAuth } from '../middleware/jwtAuth.js'
 import { apiLogger } from '../logger.js'
 
 const router = Router()
 
 /**
  * Login endpoint
- * Creates or retrieves user based on username
+ * Creates or retrieves user based on email
+ * Returns a JWT token
  */
 router.post('/login', (req: Request, res: Response) => {
-  const { username } = req.body
+  const { email } = req.body
 
-  apiLogger.request('POST', '/api/auth/login', { username })
+  apiLogger.request('POST', '/api/auth/login', { email })
 
   try {
-    // Validate username
-    if (!username || typeof username !== 'string' || username.trim().length === 0) {
-      apiLogger.response('POST', '/api/auth/login', 400, { error: 'Invalid username' })
-      return res.status(400).json({ error: 'Username is required' })
+    // Validate email
+    if (!email || typeof email !== 'string' || email.trim().length === 0) {
+      apiLogger.response('POST', '/api/auth/login', 400, { error: 'Email is required' })
+      return res.status(400).json({ error: 'Email is required' })
     }
 
-    const trimmedUsername = username.trim()
+    const trimmedEmail = email.trim().toLowerCase()
 
-    if (trimmedUsername.length < 2 || trimmedUsername.length > 50) {
-      apiLogger.response('POST', '/api/auth/login', 400, { error: 'Invalid username length' })
-      return res.status(400).json({ error: 'Username must be between 2 and 50 characters' })
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      apiLogger.response('POST', '/api/auth/login', 400, { error: 'Invalid email format' })
+      return res.status(400).json({ error: 'Invalid email format' })
     }
 
-    // Get or create user
-    const user = getOrCreateUser(trimmedUsername)
+    // Get or create user by email
+    const user = getOrCreateUserByEmail(trimmedEmail)
 
-    // Set session - explicitly save it before responding
-    req.session.user = {
+    // Generate JWT token
+    const token = generateToken({
       user_id: user.user_id,
-      username: user.username
-    }
-
-    console.log('[DEBUG] Login session set:', {
-      sessionId: req.sessionID,
-      userId: user.user_id,
-      username: user.username,
-      cookie: req.session.cookie
+      email: user.email
     })
 
-    // Save the session explicitly before responding
-    req.session.save((err) => {
-      if (err) {
-        console.error('[ERROR] Failed to save session:', err)
-        apiLogger.error('POST', '/api/auth/login', err)
-        return res.status(500).json({ error: 'Failed to save session' })
+    apiLogger.response('POST', '/api/auth/login', 200, { user_id: user.user_id, email: user.email })
+    res.json({
+      success: true,
+      token,
+      user: {
+        user_id: user.user_id,
+        email: user.email
       }
-
-      console.log('[DEBUG] Session saved successfully')
-      apiLogger.response('POST', '/api/auth/login', 200, { user_id: user.user_id, username: user.username })
-      res.json({
-        success: true,
-        user: {
-          user_id: user.user_id,
-          username: user.username
-        }
-      })
     })
   } catch (error) {
     apiLogger.error('POST', '/api/auth/login', error as Error)
@@ -69,47 +58,35 @@ router.post('/login', (req: Request, res: Response) => {
 
 /**
  * Logout endpoint
- * Clears the session
+ * Client-side only - removes token from localStorage
  */
-router.post('/logout', (req: Request, res: Response) => {
+router.post('/logout', (_req: Request, res: Response) => {
   apiLogger.request('POST', '/api/auth/logout')
 
-  try {
-    req.session?.destroy((err) => {
-      if (err) {
-        apiLogger.error('POST', '/api/auth/logout', err)
-        return res.status(500).json({ error: 'Failed to logout' })
-      }
-
-      apiLogger.response('POST', '/api/auth/logout', 200)
-      res.json({
-        success: true,
-        message: 'Logged out successfully'
-      })
-    })
-  } catch (error) {
-    apiLogger.error('POST', '/api/auth/logout', error as Error)
-    res.status(500).json({ error: 'Failed to logout' })
-  }
+  // JWT tokens are stateless - logout is handled client-side
+  // by removing the token from localStorage
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  })
 })
 
 /**
  * Get current user endpoint
- * Returns the currently authenticated user
+ * Returns the currently authenticated user from JWT
  */
-router.get('/me', (req: Request, res: Response) => {
+router.get('/me', requireAuth, (req: Request, res: Response) => {
   apiLogger.request('GET', '/api/auth/me')
 
   try {
-    if (!req.session?.user) {
-      apiLogger.response('GET', '/api/auth/me', 401)
-      return res.status(401).json({ error: 'Not authenticated' })
-    }
-
-    apiLogger.response('GET', '/api/auth/me', 200, { user_id: req.session.user.user_id })
+    // requireAuth middleware ensures req.user is set
+    apiLogger.response('GET', '/api/auth/me', 200, { user_id: req.user!.user_id })
     res.json({
       success: true,
-      user: req.session.user
+      user: {
+        user_id: req.user!.user_id,
+        email: req.user!.email
+      }
     })
   } catch (error) {
     apiLogger.error('GET', '/api/auth/me', error as Error)

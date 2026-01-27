@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { dbLogger } from './logger.js'
+import { randomUUID } from 'crypto'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -44,14 +45,15 @@ dbLogger.success('user_schools', 'CREATE_TABLE', { message: 'User schools table 
 // Create indexes for performance
 db.exec(`CREATE INDEX IF NOT EXISTS idx_user_schools_user_id ON user_schools(user_id)`)
 db.exec(`CREATE INDEX IF NOT EXISTS idx_user_schools_school_id ON user_schools(school_id)`)
+db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`)
 
 dbLogger.success('user_schools', 'CREATE_INDEX', { message: 'User schools indexes created' })
 
 export interface User {
   id?: number
   user_id: string
-  username: string
-  email?: string
+  username?: string  // Optional now, kept for backward compatibility
+  email: string      // Now required
   created_at?: string
   last_login?: string
 }
@@ -68,21 +70,37 @@ export const userDb = {
   // Create a new user
   insert(user: User) {
     try {
-      dbLogger.query('users', 'INSERT', { username: user.username })
+      dbLogger.query('users', 'INSERT', { email: user.email })
       const stmt = db.prepare(`
         INSERT INTO users (user_id, username, email, last_login)
         VALUES (?, ?, ?, ?)
       `)
-      const result = stmt.run(user.user_id, user.username, user.email || null, user.last_login || null)
+      const result = stmt.run(user.user_id, user.username || null, user.email, user.last_login || null)
       dbLogger.success('users', 'INSERT', { user_id: user.user_id })
       return result
     } catch (error) {
-      dbLogger.error('users', 'INSERT', error as Error, { username: user.username })
+      dbLogger.error('users', 'INSERT', error as Error, { email: user.email })
       throw error
     }
   },
 
-  // Get user by user_id
+  // Get user by email (new primary method)
+  getByEmail(email: string): User | undefined {
+    try {
+      dbLogger.query('users', 'SELECT_BY_EMAIL')
+      const stmt = db.prepare('SELECT * FROM users WHERE email = ?')
+      const result = stmt.get(email) as User | undefined
+      if (result) {
+        dbLogger.success('users', 'SELECT_BY_EMAIL', { email })
+      }
+      return result
+    } catch (error) {
+      dbLogger.error('users', 'SELECT_BY_EMAIL', error as Error, { email })
+      throw error
+    }
+  },
+
+  // Get user by user_id (kept for backward compatibility)
   getByUserId(user_id: string): User | undefined {
     try {
       dbLogger.query('users', 'SELECT_BY_USER_ID')
@@ -201,4 +219,32 @@ export const userDb = {
       throw error
     }
   }
+}
+
+/**
+ * Get or create a user by email
+ * This is the primary authentication function
+ */
+export function getOrCreateUserByEmail(email: string): User {
+  const normalizedEmail = email.toLowerCase().trim()
+
+  // Try to get existing user
+  let user = userDb.getByEmail(normalizedEmail)
+
+  if (user) {
+    // Update last login
+    userDb.updateLastLogin(user.user_id)
+  } else {
+    // Create new user with UUID as user_id
+    const user_id = randomUUID()
+    user = {
+      user_id,
+      email: normalizedEmail,
+      created_at: new Date().toISOString(),
+      last_login: new Date().toISOString()
+    }
+    userDb.insert(user)
+  }
+
+  return user
 }
