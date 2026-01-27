@@ -18,12 +18,70 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT UNIQUE NOT NULL,
-    username TEXT NOT NULL,
-    email TEXT,
+    username TEXT,
+    email TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     last_login TEXT
   )
 `)
+
+// Migration: Rebuild users table with new schema if needed
+try {
+  // Check if we need to migrate by checking if username is still NOT NULL
+  const tableInfo = db.pragma('table_info(users)') as any[]
+  const usernameCol = tableInfo.find((col: any) => col.name === 'username')
+
+  if (usernameCol && usernameCol.notnull === 1) {
+    // Old schema detected - need to migrate
+    console.log('[MIGRATION] Rebuilding users table to make username nullable...')
+
+    // Start transaction
+    db.exec('BEGIN TRANSACTION')
+
+    try {
+      // 1. Create new users table with correct schema
+      db.exec(`
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT UNIQUE NOT NULL,
+          username TEXT,
+          email TEXT NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          last_login TEXT
+        )
+      `)
+
+      // 2. Copy data, using email for username if username is missing
+      db.exec(`
+        INSERT INTO users_new (id, user_id, username, email, created_at, last_login)
+        SELECT id, user_id,
+          COALESCE(username, email) as username,
+          COALESCE(email, username) as email,
+          created_at,
+          last_login
+        FROM users
+      `)
+
+      // 3. Drop old table
+      db.exec('DROP TABLE users')
+
+      // 4. Rename new table
+      db.exec('ALTER TABLE users_new RENAME TO users')
+
+      // 5. Recreate indexes
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`)
+
+      db.exec('COMMIT')
+      console.log('[MIGRATION] Users table migrated successfully')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      console.error('[MIGRATION] Failed to migrate users table:', err)
+      throw err
+    }
+  }
+} catch (e) {
+  // Ignore migration errors
+}
 
 dbLogger.success('users', 'CREATE_TABLE', { message: 'Users table initialized' })
 
