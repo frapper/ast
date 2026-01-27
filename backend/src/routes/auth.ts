@@ -36,6 +36,14 @@ router.post('/login', (req: Request, res: Response) => {
         user_id: user.user_id,
         username: user.username
       }
+      console.log('[DEBUG] Login session set:', {
+        sessionId: req.sessionID,
+        userId: user.user_id,
+        username: user.username,
+        cookie: req.session.cookie
+      })
+    } else {
+      console.log('[DEBUG] ERROR: No session object available!')
     }
 
     apiLogger.response('POST', '/api/auth/login', 200, { user_id: user.user_id, username: user.username })

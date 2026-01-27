@@ -38,11 +38,24 @@ router.get('/', (req: Request, res: Response) => {
 router.post('/:schoolId', (req: Request, res: Response) => {
   const schoolId = String(req.params.schoolId)
 
-  apiLogger.request('POST', `/api/my-schools/${schoolId}`)
+  apiLogger.request('POST', `/api/my-schools/${schoolId}`, {
+    sessionExists: !!req.session,
+    userExists: !!req.session?.user,
+    userId: req.session?.user?.user_id
+  })
 
   try {
     if (!req.session?.user?.user_id) {
-      apiLogger.response('POST', `/api/my-schools/${schoolId}`, 401)
+      console.log('[DEBUG] Session details:', {
+        hasSession: !!req.session,
+        sessionId: req.sessionID,
+        sessionData: req.session,
+        cookie: req.session?.cookie
+      })
+      apiLogger.response('POST', `/api/my-schools/${schoolId}`, 401, {
+        hasSession: !!req.session,
+        hasUser: !!req.session?.user
+      })
       return res.status(401).json({ error: 'Authentication required' })
     }
 

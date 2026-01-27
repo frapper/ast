@@ -117,6 +117,21 @@ app.use(session({
   }
 }))
 
+// Session debug middleware (must be after session configuration)
+app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  if (req.path.startsWith('/api/') && req.method !== 'OPTIONS') {
+    console.log(`[SESSION DEBUG] ${req.method} ${req.path}`, {
+      hasSession: !!req.session,
+      sessionId: req.sessionID,
+      hasUser: !!req.session?.user,
+      userId: req.session?.user?.user_id,
+      origin: req.headers.origin,
+      cookieHeader: req.headers.cookie ? 'present' : 'missing'
+    })
+  }
+  next()
+})
+
 // Routes
 app.use('/api/students', studentRoutes)
 app.use('/api/schools', schoolRoutes)
