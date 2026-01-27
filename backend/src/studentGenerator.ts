@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { Student } from './db'
+import { Student } from './db.js'
 
 // Student levels
 const LEVELS = ['Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10']

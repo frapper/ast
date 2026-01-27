@@ -1,5 +1,5 @@
-import './config'
-import { startServer } from './server'
+import './config.js'
+import { startServer } from './server.js'
 
 const server = startServer()
 

@@ -1,11 +1,10 @@
 import express from 'express'
-import cors from 'cors'
 import session from 'express-session'
-import studentRoutes from './routes/students'
-import schoolRoutes from './routes/schools'
-import authRoutes from './routes/auth'
-import mySchoolsRoutes from './routes/mySchools'
-import groupsRoutes from './routes/groups'
+import studentRoutes from './routes/students.js'
+import schoolRoutes from './routes/schools.js'
+import authRoutes from './routes/auth.js'
+import mySchoolsRoutes from './routes/mySchools.js'
+import groupsRoutes from './routes/groups.js'
 
 // Environment validation
 function validateEnv() {
@@ -52,7 +51,57 @@ const corsOptions = {
 // Log CORS configuration for debugging
 console.log(`CORS configured for origin: ${corsOptions.origin}`)
 
-app.use(cors(corsOptions))
+// Request logging middleware (before CORS to see original requests)
+app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`)
+  console.log(`  Headers:`, {
+    origin: req.headers.origin,
+    host: req.headers.host,
+    referer: req.headers.referer,
+    'x-forwarded-for': req.headers['x-forwarded-for'],
+    'x-forwarded-host': req.headers['x-forwarded-host'],
+    'x-forwarded-proto': req.headers['x-forwarded-proto']
+  })
+  next()
+}, (err: Error, _req: unknown, _res: unknown, next: (err?: Error) => void) => {
+  console.error('Logging middleware error:', err)
+  next()
+})
+
+// Custom CORS middleware with detailed logging
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+
+  // Log preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('PREFLIGHT REQUEST')
+    console.log(`  Origin: ${origin}`)
+    console.log(`  Configured CORS origin: ${corsOptions.origin}`)
+    console.log(`  Match: ${origin === corsOptions.origin}`)
+  }
+
+  // Set CORS headers
+  try {
+    if (origin === corsOptions.origin) {
+      res.header('Access-Control-Allow-Origin', origin)
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      res.header('Access-Control-Allow-Credentials', 'true')
+
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200)
+        return
+      }
+    } else if (origin) {
+      console.log(`WARNING: Origin mismatch! Expected: ${corsOptions.origin}, Got: ${origin}`)
+    }
+    next()
+  } catch (error) {
+    console.error('CORS middleware error:', error)
+    next(error)
+  }
+})
+
 app.use(express.json())
 
 // Session configuration

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
-import { studentDb } from '../db'
-import { generateStudents } from '../studentGenerator'
+import { studentDb } from '../db.js'
+import { generateStudents } from '../studentGenerator.js'
 import { apiLogger } from '../logger.js'
 
 const router = Router()
