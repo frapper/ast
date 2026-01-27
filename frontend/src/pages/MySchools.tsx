@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Loader2, Heart, Trash2, MapPin, Users, Layers } from 'lucide-react'
+import { ArrowLeft, Loader2, Heart, Star, Users, MapPin } from 'lucide-react'
 import { mySchoolsApi, groupsApi } from '@/lib/api'
 
 export interface School {
@@ -164,73 +164,89 @@ export function MySchools() {
 
             {/* Schools Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {schools.map((school) => (
-                <Card key={school.id || school.school_id} className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{school.school_name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-2">
-                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p>{school.address || 'Address not available'}</p>
-                        <p>{[school.suburb, school.town].filter(Boolean).join(', ') || 'Location not available'}</p>
-                        {school.postcode && <p>{school.postcode}</p>}
-                      </div>
-                    </div>
+              {schools.map((school) => {
+                const groupCount = groupCounts[school.school_id!] || 0
+                const isRemoving = removing === school.school_id
 
-                    {school.school_type && (
-                      <div className="text-sm">
-                        <span className="font-medium">Type:</span> {school.school_type}
+                return (
+                  <Card
+                    key={school.id || school.school_id}
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleViewGroups(school.school_id!, school.school_name)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-lg flex-1">{school.school_name}</CardTitle>
+                        <div className="flex items-center gap-1">
+                          {/* Group count badge */}
+                          <div
+                            className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewGroups(school.school_id!, school.school_name)
+                            }}
+                          >
+                            <Users className="h-3.5 w-3.5" />
+                            <span>{groupCount}</span>
+                          </div>
+                          {/* Remove favorite button */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/20"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveSchool(school.school_id!, school.school_name)
+                            }}
+                            disabled={isRemoving}
+                          >
+                            {isRemoving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Star className="h-4 w-4 fill-current" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    )}
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p>{school.address || 'Address not available'}</p>
+                          <p>{[school.suburb, school.town].filter(Boolean).join(', ') || 'Location not available'}</p>
+                          {school.postcode && <p>{school.postcode}</p>}
+                        </div>
+                      </div>
 
-                    {school.authority && (
-                      <div className="text-sm">
-                        <span className="font-medium">Authority:</span> {school.authority}
-                      </div>
-                    )}
+                      {school.school_type && (
+                        <div className="text-sm">
+                          <span className="font-medium">Type:</span> {school.school_type}
+                        </div>
+                      )}
 
-                    {school.roll_number && school.roll_number > 0 && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="w-4 h-4" />
-                        <span>Roll: {school.roll_number.toLocaleString()}</span>
-                      </div>
-                    )}
+                      {school.authority && (
+                        <div className="text-sm">
+                          <span className="font-medium">Authority:</span> {school.authority}
+                        </div>
+                      )}
 
-                    {school.decile && school.decile > 0 && (
-                      <div className="text-sm">
-                        <span className="font-medium">Decile:</span> {school.decile}
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardContent className="pt-0 border-t">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleViewGroups(school.school_id!, school.school_name)}
-                      >
-                        <Layers className="mr-1 h-4 w-4" />
-                        Groups ({groupCounts[school.school_id!] || 0})
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveSchool(school.school_id!, school.school_name)}
-                        disabled={removing === school.school_id}
-                      >
-                        {removing === school.school_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      {school.roll_number && school.roll_number > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users className="w-4 h-4" />
+                          <span>Roll: {school.roll_number.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {school.decile && school.decile > 0 && (
+                        <div className="text-sm">
+                          <span className="font-medium">Decile:</span> {school.decile}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </>
         ) : (

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SchoolCard, type School } from '@/components/SchoolCard'
-import { ArrowLeft, Trash2, Loader2, Building2, Upload, Filter, X, Search, Plus, Check } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, Building2, Upload, Filter, X, Search } from 'lucide-react'
 import { schoolsApi, mySchoolsApi } from '@/lib/api'
 
 export function Schools() {
@@ -329,8 +329,7 @@ export function Schools() {
                     onChange={(e) => setShowOnlyMySchools(e.target.checked)}
                     className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
                   />
-                  <label htmlFor="mySchoolsOnly" className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
+                  <label htmlFor="mySchoolsOnly" className="text-sm font-medium cursor-pointer">
                     Show only my schools ({mySchoolIds.size})
                   </label>
                 </div>
@@ -402,33 +401,13 @@ export function Schools() {
               const isToggling = togglingSchool === school.school_id
 
               return (
-                <div key={school.id || school.school_id} className="flex flex-col gap-2">
-                  <SchoolCard school={school} isInList={isInList} />
-                  <Button
-                    variant={isInList ? "default" : "outline"}
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleToggleMySchool(school.school_id || '')}
-                    disabled={isToggling}
-                  >
-                    {isToggling ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isInList ? 'Removing...' : 'Adding...'}
-                      </>
-                    ) : isInList ? (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Added
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add to My Schools
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <SchoolCard
+                  key={school.id || school.school_id}
+                  school={school}
+                  isInList={isInList}
+                  onToggle={() => handleToggleMySchool(school.school_id || '')}
+                  isToggling={isToggling}
+                />
               )
             })}
           </div>

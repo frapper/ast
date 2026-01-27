@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MapPin, Phone, Mail, Globe, Users } from 'lucide-react'
+import { MapPin, Phone, Mail, Globe, Users, Star, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export interface School {
   id?: number
@@ -29,9 +30,11 @@ export interface School {
 interface SchoolCardProps {
   school: School
   isInList?: boolean
+  onToggle?: () => void
+  isToggling?: boolean
 }
 
-export function SchoolCard({ school, isInList }: SchoolCardProps) {
+export function SchoolCard({ school, isInList, onToggle, isToggling }: SchoolCardProps) {
   const formatLocation = () => {
     const parts = [school.suburb, school.town].filter(Boolean)
     return parts.length > 0 ? parts.join(', ') : 'Not available'
@@ -42,7 +45,24 @@ export function SchoolCard({ school, isInList }: SchoolCardProps) {
       isInList ? 'bg-blue-50 dark:bg-blue-950' : ''
     }`}>
       <CardHeader>
-        <CardTitle className="text-lg">{school.school_name}</CardTitle>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg flex-1">{school.school_name}</CardTitle>
+          {onToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`flex-shrink-0 ${isInList ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500'}`}
+              onClick={onToggle}
+              disabled={isToggling}
+            >
+              {isToggling ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Star className={`h-5 w-5 ${isInList ? 'fill-current' : ''}`} />
+              )}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 flex-1">
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
