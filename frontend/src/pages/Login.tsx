@@ -16,7 +16,7 @@ export function Login() {
     e.preventDefault()
 
     if (!username.trim()) {
-      setError('Please enter a username')
+      setError('Please enter your email')
       return
     }
 
@@ -26,6 +26,8 @@ export function Login() {
       const response = await authApi.login(username.trim())
 
       if (response.success) {
+        // Store the JWT token
+        localStorage.setItem('auth_token', response.token)
         // Redirect to home page
         navigate('/')
       }
@@ -48,7 +50,7 @@ export function Login() {
               </div>
             </div>
             <CardTitle className="text-3xl">Welcome</CardTitle>
-            <CardDescription>Enter your username to continue</CardDescription>
+            <CardDescription>Enter your email to continue</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,22 +62,20 @@ export function Login() {
 
               <div className="space-y-2">
                 <label htmlFor="username" className="text-sm font-medium">
-                  Username
+                  Email
                 </label>
                 <Input
                   id="username"
-                  type="text"
-                  placeholder="Enter your username"
+                  type="email"
+                  placeholder="Enter your email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={loading}
                   autoFocus
-                  minLength={2}
-                  maxLength={50}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Choose any username to get started
+                  Enter your email address to get started
                 </p>
               </div>
 
@@ -102,8 +102,8 @@ export function Login() {
         </Card>
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>This is a simple username-based login for demonstration purposes.</p>
-          <p className="mt-1">No password required - just enter any username.</p>
+          <p>This is a simple email-based login for demonstration purposes.</p>
+          <p className="mt-1">No password required - just enter your email address.</p>
         </div>
       </div>
     </div>

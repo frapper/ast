@@ -16,9 +16,29 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  },
-  withCredentials: true
+  }
 })
+
+// Add JWT token to all requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Handle 401 errors (unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const studentsApi = {
   /**
@@ -89,10 +109,10 @@ export const schoolsApi = {
 
 export const authApi = {
   /**
-   * Login with username
+   * Login with email
    */
-  async login(username: string) {
-    const response = await api.post('/api/auth/login', { username })
+  async login(email: string) {
+    const response = await api.post('/api/auth/login', { email })
     return response.data
   },
 
@@ -100,6 +120,8 @@ export const authApi = {
    * Logout
    */
   async logout() {
+    // Remove token from localStorage
+    localStorage.removeItem('auth_token')
     const response = await api.post('/api/auth/logout')
     return response.data
   },
