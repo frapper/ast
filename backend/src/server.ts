@@ -128,6 +128,40 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Backend server is running' })
 })
 
+// Global error handler - ensures CORS headers are present on all error responses
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const origin = req.headers.origin
+
+  // Add CORS headers to error responses
+  if (origin === corsOptions.origin) {
+    res.header('Access-Control-Allow-Origin', origin)
+    res.header('Access-Control-Allow-Credentials', 'true')
+  }
+
+  console.error('Error:', err)
+
+  // Handle multer file size errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: 'File too large',
+      message: 'The uploaded file exceeds the size limit'
+    })
+  }
+
+  // Handle multer file type errors
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({
+      error: 'Invalid file upload',
+      message: err.message || 'Unexpected file field'
+    })
+  }
+
+  // Default error response
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error'
+  })
+})
+
 // Start server
 export function startServer() {
   return app.listen(PORT, () => {
