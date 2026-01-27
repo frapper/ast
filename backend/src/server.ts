@@ -4,6 +4,7 @@ import schoolRoutes from './routes/schools.js'
 import authRoutes from './routes/auth.js'
 import mySchoolsRoutes from './routes/mySchools.js'
 import groupsRoutes from './routes/groups.js'
+import astRoutes from './routes/ast.js'
 
 // Environment validation
 function validateEnv() {
@@ -100,6 +101,7 @@ app.use('/api/schools', schoolRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/my-schools', mySchoolsRoutes)
 app.use('/api/groups', groupsRoutes)
+app.use('/api/ast', astRoutes)
 
 // Health check
 app.get('/api/health', (_req, res) => {

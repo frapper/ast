@@ -243,4 +243,47 @@ export const groupsApi = {
   }
 }
 
+export const astApi = {
+  /**
+   * Generate AST file content
+   */
+  async generateAST(schoolId: string, schoolName: string, groupId?: string) {
+    const response = await api.post('/api/ast/generate', {
+      schoolId,
+      schoolName,
+      groupId
+    }, {
+      responseType: 'text'
+    })
+    return response.data
+  },
+
+  /**
+   * Download AST file
+   */
+  async downloadAST(schoolId: string, schoolName: string, groupId?: string) {
+    const response = await api.post('/api/ast/download', {
+      schoolId,
+      schoolName,
+      groupId
+    }, {
+      responseType: 'blob'
+    })
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+
+    const timestamp = new Date().toISOString().split('T')[0]
+    link.setAttribute('download', `AST_${schoolId}_${timestamp}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+
+    return { success: true }
+  }
+}
+
 export default api

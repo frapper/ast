@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ArrowLeft, Loader2, Plus, Trash2, Layers, Check, X, Users, Settings } from 'lucide-react'
-import { groupsApi } from '@/lib/api'
+import { groupsApi, astApi } from '@/lib/api'
 import type { Student } from '@/types/student'
 
 export interface Group {
@@ -45,6 +45,8 @@ export function Groups() {
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
   const [generating, setGenerating] = useState(false)
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+  const [astDialogOpen, setAstDialogOpen] = useState(false)
+  const [generatingAST, setGeneratingAST] = useState(false)
   const [studentCount, setStudentCount] = useState(20)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
   const [editedStudent, setEditedStudent] = useState<Partial<Student>>({})
@@ -154,7 +156,7 @@ export function Groups() {
   }
 
   const handleGenerateAST = () => {
-    alert('Generate')
+    setAstDialogOpen(true)
   }
 
   const handleStartEditStudent = (student: Student) => {
@@ -771,6 +773,77 @@ export function Groups() {
                     Generate Students
                   </>
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Generate AST Dialog */}
+        <Dialog open={astDialogOpen} onOpenChange={setAstDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate AST</DialogTitle>
+              <DialogDescription>
+                Configure and generate your AST document for {schoolName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-6">
+              <div className="flex flex-col items-center gap-4">
+                <Button
+                  size="lg"
+                  className="w-full max-w-xs"
+                  onClick={async () => {
+                    try {
+                      setError(null)
+                      setGeneratingAST(true)
+                      const response = await astApi.downloadAST(
+                        schoolId,
+                        schoolName,
+                        selectedGroupId || undefined
+                      )
+
+                      if (response.success) {
+                        setSuccess('AST file downloaded successfully')
+                        setAstDialogOpen(false)
+                        setTimeout(() => setSuccess(null), 3000)
+                      }
+                    } catch (err: any) {
+                      console.error('Error generating AST:', err)
+                      setError(err.response?.data?.error || 'Failed to generate AST file')
+                    } finally {
+                      setGeneratingAST(false)
+                    }
+                  }}
+                  disabled={generatingAST}
+                >
+                  {generatingAST ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="mr-2 h-5 w-5" />
+                      Generate AST
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  School ID: {schoolId}
+                </p>
+                {selectedGroupId && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Selected Group: {groups.find(g => g.group_id === selectedGroupId)?.group_name}
+                  </p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setAstDialogOpen(false)}
+              >
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>
