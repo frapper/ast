@@ -175,13 +175,12 @@ export function Home() {
               <GraduationCap className="h-16 w-16 text-primary" />
             </div>
             <div>
-              <h1 className="text-5xl font-bold">Welcome to Your Learning Portal</h1>
+              <h1 className="text-5xl font-bold">Your AST Generator</h1>
               <p className="text-xl text-muted-foreground mt-2">
                 Hello, <span className="font-semibold text-foreground">{user.username}</span>!
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Your journey to knowledge starts here. Explore resources, track your progress,
-                and achieve your academic goals.
+                Generate AST files for your school. Manage groups, students, and export data.
               </p>
             </div>
           </div>

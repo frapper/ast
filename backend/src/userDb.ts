@@ -292,11 +292,17 @@ export function getOrCreateUserByEmail(email: string): User {
   if (user) {
     // Update last login
     userDb.updateLastLogin(user.user_id)
+
+    // Ensure username is set (for older accounts that might not have it)
+    if (!user.username) {
+      user.username = normalizedEmail
+    }
   } else {
     // Create new user with UUID as user_id
     const user_id = randomUUID()
     user = {
       user_id,
+      username: normalizedEmail,  // Use email as username
       email: normalizedEmail,
       created_at: new Date().toISOString(),
       last_login: new Date().toISOString()

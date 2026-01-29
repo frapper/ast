@@ -3,6 +3,7 @@ import { verifyToken } from '../utils/jwt.js'
 
 export interface JWTPayload {
   user_id: string
+  username: string
   email: string
 }
 

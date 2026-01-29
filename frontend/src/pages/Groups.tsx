@@ -3,6 +3,14 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -47,7 +55,14 @@ export function Groups() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
   const [astDialogOpen, setAstDialogOpen] = useState(false)
   const [generatingAST, setGeneratingAST] = useState(false)
-  const [studentCount, setStudentCount] = useState(20)
+  const [studentCount, setStudentCount] = useState<number>(20)
+  const [studentCountInput, setStudentCountInput] = useState('20')
+  const [suffixStudentName, setSuffixStudentName] = useState(false)
+  const [suffixText, setSuffixText] = useState('')
+  const [fixedYear, setFixedYear] = useState(false)
+  const [selectedYear, setSelectedYear] = useState<string>('3')
+  const [simulateBadNSN, setSimulateBadNSN] = useState(false)
+  const [badNSNCount, setBadNSNCount] = useState(1)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
   const [editedStudent, setEditedStudent] = useState<Partial<Student>>({})
   const [deletingStudent, setDeletingStudent] = useState<string | null>(null)
@@ -129,7 +144,14 @@ export function Groups() {
       setError(null)
       setGenerating(true)
       setGenerateDialogOpen(false)
-      const response = await groupsApi.generateStudentsForGroup(selectedGroupId, studentCount)
+
+      const options = {
+        suffix: suffixStudentName ? suffixText : undefined,
+        fixedYear: fixedYear ? parseInt(selectedYear) : undefined,
+        badNSNCount: simulateBadNSN ? badNSNCount : undefined
+      }
+
+      const response = await groupsApi.generateStudentsForGroup(selectedGroupId, studentCount, options)
 
       // Add new students to existing list
       setStudents(prev => [...prev, ...response.students])
@@ -738,12 +760,117 @@ export function Groups() {
                   type="number"
                   min="1"
                   max="10000"
-                  value={studentCount}
-                  onChange={(e) => setStudentCount(parseInt(e.target.value) || 0)}
+                  value={studentCountInput}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setStudentCountInput(value)
+                    const parsed = parseInt(value) || 0
+                    setStudentCount(parsed)
+                  }}
                   placeholder="Enter number of students"
                   disabled={generating}
                 />
               </div>
+
+              {/* Suffix Student Name */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="suffixStudentName"
+                    checked={suffixStudentName}
+                    onCheckedChange={(checked) => {
+                      setSuffixStudentName(checked as boolean)
+                      if (!checked) setSuffixText('')
+                    }}
+                    disabled={generating}
+                  />
+                  <label
+                    htmlFor="suffixStudentName"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Suffix 'surname'
+                  </label>
+                </div>
+                <Input
+                  value={suffixText}
+                  onChange={(e) => {
+                    const value = e.target.value.slice(0, 10)
+                    setSuffixText(value)
+                  }}
+                  placeholder="Enter suffix (max 10 chars)"
+                  disabled={!suffixStudentName || generating}
+                  maxLength={10}
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Fixed Year */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="fixedYear"
+                    checked={fixedYear}
+                    onCheckedChange={(checked) => setFixedYear(checked as boolean)}
+                    disabled={generating}
+                  />
+                  <label
+                    htmlFor="fixedYear"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Fixed Year
+                  </label>
+                </div>
+                <Select
+                  value={selectedYear}
+                  onValueChange={setSelectedYear}
+                  disabled={!fixedYear || generating}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 8 }, (_, i) => i + 3).map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        Year {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Simulate bad NSN */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="simulateBadNSN"
+                    checked={simulateBadNSN}
+                    onCheckedChange={(checked) => {
+                      setSimulateBadNSN(checked as boolean)
+                      if (!checked) setBadNSNCount(1)
+                    }}
+                    disabled={generating}
+                  />
+                  <label
+                    htmlFor="simulateBadNSN"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Simulate bad NSN
+                  </label>
+                </div>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value={badNSNCount}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1
+                    setBadNSNCount(Math.max(1, Math.min(10000, value)))
+                  }}
+                  disabled={!simulateBadNSN || generating}
+                  className="w-24"
+                />
+              </div>
+
               {error && (
                 <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
                   {error}
@@ -798,8 +925,7 @@ export function Groups() {
                       setGeneratingAST(true)
                       const response = await astApi.downloadAST(
                         schoolId,
-                        schoolName,
-                        selectedGroupId || undefined
+                        schoolName
                       )
 
                       if (response.success) {
@@ -831,11 +957,9 @@ export function Groups() {
                 <p className="text-sm text-muted-foreground text-center">
                   School ID: {schoolId}
                 </p>
-                {selectedGroupId && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Selected Group: {groups.find(g => g.group_id === selectedGroupId)?.group_name}
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground text-center">
+                  All groups will be included in the AST file
+                </p>
               </div>
             </div>
             <DialogFooter>

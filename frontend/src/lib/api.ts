@@ -229,8 +229,13 @@ export const groupsApi = {
   /**
    * Generate synthetic students for a specific group
    */
-  async generateStudentsForGroup(groupId: string, count: number) {
-    const response = await api.post(`/api/groups/${groupId}/students/generate`, { count })
+  async generateStudentsForGroup(groupId: string, count: number, options?: { suffix?: string; fixedYear?: number; badNSNCount?: number }) {
+    const response = await api.post(`/api/groups/${groupId}/students/generate`, {
+      count,
+      suffix: options?.suffix,
+      fixedYear: options?.fixedYear,
+      badNSNCount: options?.badNSNCount
+    })
     return response.data
   },
 

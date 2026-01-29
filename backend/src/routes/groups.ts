@@ -289,9 +289,9 @@ router.get('/:groupId/students', (req: Request, res: Response) => {
  */
 router.post('/:groupId/students/generate', (req: Request, res: Response) => {
   const groupId = String(req.params.groupId)
-  const { count } = req.body
+  const { count, suffix, fixedYear, badNSNCount } = req.body
 
-  apiLogger.request('POST', `/api/groups/${groupId}/students/generate`, { count })
+  apiLogger.request('POST', `/api/groups/${groupId}/students/generate`, { count, suffix, fixedYear, badNSNCount })
 
   try {
 
@@ -317,11 +317,40 @@ router.post('/:groupId/students/generate', (req: Request, res: Response) => {
       })
     }
 
+    // Validate fixedYear if provided
+    if (fixedYear !== undefined && (typeof fixedYear !== 'number' || fixedYear < 3 || fixedYear > 10)) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 400)
+      return res.status(400).json({
+        error: 'Fixed year must be between 3 and 10'
+      })
+    }
+
+    // Validate suffix if provided
+    if (suffix !== undefined && (typeof suffix !== 'string' || suffix.length > 10)) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 400)
+      return res.status(400).json({
+        error: 'Suffix must be 10 characters or less'
+      })
+    }
+
+    // Validate badNSNCount if provided
+    if (badNSNCount !== undefined && (typeof badNSNCount !== 'number' || badNSNCount < 0 || badNSNCount > count)) {
+      apiLogger.response('POST', `/api/groups/${groupId}/students/generate`, 400)
+      return res.status(400).json({
+        error: 'Bad NSN count must be between 0 and the total number of students'
+      })
+    }
+
     // Get existing NSNs for this user's groups in the school
     const existingNSNs = studentDb.getNSNsByUserSchool(user_id, group.school_id)
 
     // Generate students with unique NSNs
-    const students = generateStudents(count, existingNSNs)
+    const options = {
+      suffix,
+      fixedYear,
+      badNSNCount
+    }
+    const students = generateStudents(count, existingNSNs, options)
 
     // Insert students into database
     studentDb.insertMany(students)

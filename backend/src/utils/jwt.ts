@@ -4,6 +4,7 @@ const SECRET = process.env.JWT_SECRET || 'change-this-in-production'
 
 export interface JWTPayload {
   user_id: string
+  username: string
   email: string
 }
 

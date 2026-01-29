@@ -40,6 +40,7 @@ router.post('/login', (req: Request, res: Response) => {
     // Generate JWT token
     const token = generateToken({
       user_id: user.user_id,
+      username: user.username || user.email,
       email: user.email
     })
 
@@ -49,6 +50,7 @@ router.post('/login', (req: Request, res: Response) => {
       token,
       user: {
         user_id: user.user_id,
+        username: user.username || user.email,
         email: user.email
       }
     })
@@ -87,6 +89,7 @@ router.get('/me', requireAuth, (req: Request, res: Response) => {
       success: true,
       user: {
         user_id: req.user!.user_id,
+        username: req.user!.username,
         email: req.user!.email
       }
     })
