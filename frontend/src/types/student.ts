@@ -6,6 +6,17 @@ export interface Student {
   ethnicity: string
   gender: string
   nsn: string
+  language: string
+}
+
+export interface EthnicityCode {
+  DMU: string
+  Description: string
+}
+
+export interface LanguageCode {
+  code: string
+  description: string
 }
 
 export interface GenerateStudentsResponse {

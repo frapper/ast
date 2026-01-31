@@ -21,9 +21,21 @@ db.exec(`
     level TEXT NOT NULL,
     ethnicity TEXT NOT NULL,
     gender TEXT NOT NULL,
-    nsn TEXT NOT NULL UNIQUE
+    nsn TEXT NOT NULL UNIQUE,
+    language TEXT NOT NULL DEFAULT 'en'
   )
 `)
+
+// Migration: Add language column if it doesn't exist (for existing databases)
+try {
+  db.exec(`ALTER TABLE students ADD COLUMN language TEXT NOT NULL DEFAULT '999'`)
+  dbLogger.success('students', 'MIGRATION', { message: 'Added language column to students table' })
+} catch (error: any) {
+  // Column already exists - this is expected on subsequent runs
+  if (!error.message.includes('duplicate column name')) {
+    dbLogger.error('students', 'MIGRATION', error as Error, { message: 'Migration failed' })
+  }
+}
 
 dbLogger.success('students', 'CREATE_TABLE', { message: 'Students table initialized' })
 
@@ -56,6 +68,7 @@ export interface Student {
   ethnicity: string
   gender: string
   nsn: string
+  language: string
 }
 
 export const studentDb = {
@@ -64,10 +77,10 @@ export const studentDb = {
     try {
       dbLogger.query('students', 'INSERT', { student_id: student.student_id })
       const stmt = db.prepare(`
-        INSERT INTO students (student_id, first_name, last_name, level, ethnicity, gender, nsn)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO students (student_id, first_name, last_name, level, ethnicity, gender, nsn, language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      const result = stmt.run(student.student_id, student.first_name, student.last_name, student.level, student.ethnicity, student.gender, student.nsn)
+      const result = stmt.run(student.student_id, student.first_name, student.last_name, student.level, student.ethnicity, student.gender, student.nsn, student.language)
       dbLogger.success('students', 'INSERT', { student_id: student.student_id })
       return result
     } catch (error) {
@@ -81,12 +94,12 @@ export const studentDb = {
     try {
       dbLogger.query('students', 'INSERT_MANY', { count: students.length })
       const stmt = db.prepare(`
-        INSERT INTO students (student_id, first_name, last_name, level, ethnicity, gender, nsn)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO students (student_id, first_name, last_name, level, ethnicity, gender, nsn, language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       const insertMany = db.transaction((students: Student[]) => {
         for (const student of students) {
-          stmt.run(student.student_id, student.first_name, student.last_name, student.level, student.ethnicity, student.gender, student.nsn)
+          stmt.run(student.student_id, student.first_name, student.last_name, student.level, student.ethnicity, student.gender, student.nsn, student.language)
         }
       })
       insertMany(students)
@@ -274,6 +287,63 @@ export const studentDb = {
       return result.map(r => r.nsn)
     } catch (error) {
       dbLogger.error('students', 'SELECT_NSN_BY_USER_SCHOOL', error as Error, { user_id, school_id })
+      throw error
+    }
+  },
+
+  // Update a student
+  update(student_id: string, updates: Partial<Student>) {
+    try {
+      dbLogger.query('students', 'UPDATE', { student_id, updates })
+
+      const fields: string[] = []
+      const values: any[] = []
+
+      if (updates.first_name !== undefined) {
+        fields.push('first_name = ?')
+        values.push(updates.first_name)
+      }
+      if (updates.last_name !== undefined) {
+        fields.push('last_name = ?')
+        values.push(updates.last_name)
+      }
+      if (updates.level !== undefined) {
+        fields.push('level = ?')
+        values.push(updates.level)
+      }
+      if (updates.ethnicity !== undefined) {
+        fields.push('ethnicity = ?')
+        values.push(updates.ethnicity)
+      }
+      if (updates.gender !== undefined) {
+        fields.push('gender = ?')
+        values.push(updates.gender)
+      }
+      if (updates.nsn !== undefined) {
+        fields.push('nsn = ?')
+        values.push(updates.nsn)
+      }
+      if (updates.language !== undefined) {
+        fields.push('language = ?')
+        values.push(updates.language)
+      }
+
+      if (fields.length === 0) {
+        dbLogger.success('students', 'UPDATE', { student_id, message: 'No fields to update' })
+        return { changes: 0 }
+      }
+
+      values.push(student_id)
+      const stmt = db.prepare(`
+        UPDATE students
+        SET ${fields.join(', ')}
+        WHERE student_id = ?
+      `)
+      const result = stmt.run(...values)
+      dbLogger.success('students', 'UPDATE', { student_id, changes: result.changes })
+      return result
+    } catch (error) {
+      dbLogger.error('students', 'UPDATE', error as Error, { student_id, updates })
       throw error
     }
   }

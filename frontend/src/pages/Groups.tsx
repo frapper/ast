@@ -20,8 +20,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ArrowLeft, Loader2, Plus, Trash2, Layers, Check, X, Users, Settings } from 'lucide-react'
-import { groupsApi, astApi } from '@/lib/api'
-import type { Student } from '@/types/student'
+import { groupsApi, astApi, studentsApi } from '@/lib/api'
+import type { Student, EthnicityCode, LanguageCode } from '@/types/student'
 
 export interface Group {
   id?: number
@@ -68,9 +68,13 @@ export function Groups() {
   const [deletingStudent, setDeletingStudent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [ethnicityCodes, setEthnicityCodes] = useState<EthnicityCode[]>([])
+  const [languageCodes, setLanguageCodes] = useState<LanguageCode[]>([])
 
   useEffect(() => {
     loadGroups()
+    loadEthnicityCodes()
+    loadLanguageCodes()
   }, [schoolId])
 
   useEffect(() => {
@@ -108,6 +112,34 @@ export function Groups() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadEthnicityCodes = async () => {
+    try {
+      const response = await studentsApi.getEthnicityCodes()
+      setEthnicityCodes(response.codes)
+    } catch (err) {
+      console.error('Error loading ethnicity codes:', err)
+    }
+  }
+
+  const loadLanguageCodes = async () => {
+    try {
+      const response = await studentsApi.getLanguageCodes()
+      setLanguageCodes(response.codes)
+    } catch (err) {
+      console.error('Error loading language codes:', err)
+    }
+  }
+
+  const getEthnicityLabel = (code: string) => {
+    const ethnicity = ethnicityCodes.find(e => e.DMU === code)
+    return ethnicity?.Description || code
+  }
+
+  const getLanguageLabel = (code: string) => {
+    const language = languageCodes.find(l => l.code === code)
+    return language?.description || 'Unknown'
   }
 
   const loadStudents = async () => {
@@ -183,7 +215,10 @@ export function Groups() {
 
   const handleStartEditStudent = (student: Student) => {
     setEditingStudent(student.student_id)
-    setEditedStudent({ ...student })
+    setEditedStudent({
+      ...student,
+      language: student.language || '999' // Default to Unknown if undefined
+    })
   }
 
   const handleCancelEditStudent = () => {
@@ -202,9 +237,12 @@ export function Groups() {
 
     try {
       setError(null)
-      // Update local state
+      // Call backend API to update student
+      const response = await studentsApi.updateStudent(editedStudent.student_id, editedStudent)
+
+      // Update local state with response
       setStudents(prev => prev.map(s =>
-        s.student_id === editedStudent.student_id ? { ...s, ...editedStudent } as Student : s
+        s.student_id === editedStudent.student_id ? response.student : s
       ))
       setEditingStudent(null)
       setEditedStudent({})
@@ -212,7 +250,7 @@ export function Groups() {
       setTimeout(() => setSuccess(null), 3000)
     } catch (err: any) {
       console.error('Error updating student:', err)
-      setError('Failed to update student')
+      setError(err.response?.data?.error || 'Failed to update student')
     }
   }
 
@@ -639,7 +677,7 @@ export function Groups() {
                                     <select
                                       value={editedStudent.level || ''}
                                       onChange={(e) => setEditedStudent({ ...editedStudent, level: e.target.value })}
-                                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                                     >
                                       <option value="Year 3">Year 3</option>
                                       <option value="Year 4">Year 4</option>
@@ -656,7 +694,7 @@ export function Groups() {
                                     <select
                                       value={editedStudent.gender || ''}
                                       onChange={(e) => setEditedStudent({ ...editedStudent, gender: e.target.value })}
-                                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                                     >
                                       <option value="Male">Male</option>
                                       <option value="Female">Female</option>
@@ -664,6 +702,42 @@ export function Groups() {
                                       <option value="Other">Other</option>
                                     </select>
                                   </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">Ethnicity</label>
+                                  <Select
+                                    value={editedStudent.ethnicity || ''}
+                                    onValueChange={(value) => setEditedStudent({ ...editedStudent, ethnicity: value })}
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Select ethnicity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ethnicityCodes.map((code) => (
+                                        <SelectItem key={code.DMU} value={code.DMU}>
+                                          {code.Description}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">Language</label>
+                                  <Select
+                                    value={editedStudent.language || ''}
+                                    onValueChange={(value) => setEditedStudent({ ...editedStudent, language: value })}
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Select language" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {languageCodes.map((code) => (
+                                        <SelectItem key={code.code} value={code.code}>
+                                          {code.description}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Button size="sm" onClick={handleSaveStudent}>
@@ -683,6 +757,12 @@ export function Groups() {
                                   </p>
                                   <p className="text-sm text-muted-foreground">
                                     {student.level} • {student.gender}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Ethnicity: {getEthnicityLabel(student.ethnicity)}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Language: {getLanguageLabel(student.language)}
                                   </p>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     ID: {student.student_id}
@@ -788,7 +868,7 @@ export function Groups() {
                     htmlFor="suffixStudentName"
                     className="text-sm font-medium cursor-pointer"
                   >
-                    Suffix 'surname'
+                    Surname Suffix
                   </label>
                 </div>
                 <Input
@@ -828,7 +908,7 @@ export function Groups() {
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="!bg-background z-[100]">
                     {Array.from({ length: 8 }, (_, i) => i + 3).map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         Year {year}

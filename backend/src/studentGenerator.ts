@@ -7,8 +7,59 @@ const LEVELS = ['Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Yea
 // Gender options
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Other']
 
-// Ethnicity codes: 1 = English, 2 = Other
-const ETHNICITY_CODES = ['1', '2']
+// DMU Ethnicity codes from asTTle specification
+export interface EthnicityCode {
+  DMU: string
+  Description: string
+}
+
+export const ETHNICITY_CODES: EthnicityCode[] = [
+  { DMU: '111', Description: 'NZ European / Pakeha' },
+  { DMU: '121', Description: 'British / Irish' },
+  { DMU: '122', Description: 'Dutch' },
+  { DMU: '123', Description: 'Greek' },
+  { DMU: '124', Description: 'Polish' },
+  { DMU: '125', Description: 'South Slav' },
+  { DMU: '126', Description: 'Italian' },
+  { DMU: '127', Description: 'German' },
+  { DMU: '128', Description: 'Australian' },
+  { DMU: '129', Description: 'Other European' },
+  { DMU: '211', Description: 'Maori' },
+  { DMU: '311', Description: 'Samoan' },
+  { DMU: '321', Description: 'Cook Island Maori' },
+  { DMU: '331', Description: 'Tongan' },
+  { DMU: '341', Description: 'Niuean' },
+  { DMU: '351', Description: 'Tokelauan' },
+  { DMU: '361', Description: 'Fijian' },
+  { DMU: '371', Description: 'Other Pacific Peoples' },
+  { DMU: '411', Description: 'Filipino' },
+  { DMU: '412', Description: 'Cambodian' },
+  { DMU: '413', Description: 'Vietnamese' },
+  { DMU: '414', Description: 'Other Southeast Asian' },
+  { DMU: '421', Description: 'Chinese' },
+  { DMU: '431', Description: 'Indian' },
+  { DMU: '441', Description: 'Sri Lankan' },
+  { DMU: '442', Description: 'Japanese' },
+  { DMU: '443', Description: 'Korean' },
+  { DMU: '444', Description: 'Other Asian' },
+  { DMU: '511', Description: 'Middle Eastern' },
+  { DMU: '521', Description: 'Latin American' },
+  { DMU: '531', Description: 'African' },
+  { DMU: '611', Description: 'Other Ethnicity' },
+  { DMU: '999', Description: 'Not Stated' }
+]
+
+// Language codes: 1=English, 2=Other than English, 999=Unknown
+export interface LanguageCode {
+  code: string
+  description: string
+}
+
+export const LANGUAGE_CODES: LanguageCode[] = [
+  { code: '1', description: 'English' },
+  { code: '2', description: 'Other than English' },
+  { code: '999', description: 'Unknown' }
+]
 
 export interface StudentGenerationOptions {
   suffix?: string
@@ -68,7 +119,10 @@ export function generateStudent(options?: StudentGenerationOptions, makeBadNSN =
     : faker.helpers.arrayElement(LEVELS)
 
   const gender = faker.helpers.arrayElement(GENDERS)
-  const ethnicity = faker.helpers.arrayElement(ETHNICITY_CODES)
+  const ethnicityObj = faker.helpers.arrayElement(ETHNICITY_CODES)
+  const ethnicity = ethnicityObj.DMU
+  const languageObj = faker.helpers.arrayElement(LANGUAGE_CODES)
+  const language = languageObj.code
   const nsn = generateNSN(makeBadNSN)
 
   // Apply suffix to last name if provided
@@ -83,7 +137,8 @@ export function generateStudent(options?: StudentGenerationOptions, makeBadNSN =
     level,
     ethnicity,
     gender,
-    nsn
+    nsn,
+    language
   }
 }
 

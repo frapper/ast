@@ -15,6 +15,43 @@ import { ArrowLeft, User, Trash2, Loader2 } from 'lucide-react'
 import { studentsApi } from '@/lib/api'
 import type { Student } from '@/types/student'
 
+// DMU Ethnicity code descriptions
+const ETHNICITY_MAP: Record<string, string> = {
+  '111': 'NZ European / Pakeha',
+  '121': 'British / Irish',
+  '122': 'Dutch',
+  '123': 'Greek',
+  '124': 'Polish',
+  '125': 'South Slav',
+  '126': 'Italian',
+  '127': 'German',
+  '128': 'Australian',
+  '129': 'Other European',
+  '211': 'Maori',
+  '311': 'Samoan',
+  '321': 'Cook Island Maori',
+  '331': 'Tongan',
+  '341': 'Niuean',
+  '351': 'Tokelauan',
+  '361': 'Fijian',
+  '371': 'Other Pacific Peoples',
+  '411': 'Filipino',
+  '412': 'Cambodian',
+  '413': 'Vietnamese',
+  '414': 'Other Southeast Asian',
+  '421': 'Chinese',
+  '431': 'Indian',
+  '441': 'Sri Lankan',
+  '442': 'Japanese',
+  '443': 'Korean',
+  '444': 'Other Asian',
+  '511': 'Middle Eastern',
+  '521': 'Latin American',
+  '531': 'African',
+  '611': 'Other Ethnicity',
+  '999': 'Not Stated'
+}
+
 export function Student() {
   const navigate = useNavigate()
   const [studentCount, setStudentCount] = useState(10)
@@ -80,7 +117,7 @@ export function Student() {
   }
 
   const getEthnicityLabel = (code: string) => {
-    return code === '1' ? 'English' : 'Other'
+    return ETHNICITY_MAP[code] || code
   }
 
   return (

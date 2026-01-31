@@ -3,6 +3,9 @@ import type {
   GenerateStudentsResponse,
   GetStudentsResponse,
   DeleteStudentsResponse,
+  EthnicityCode,
+  LanguageCode,
+  Student,
 } from '@/types/student'
 import type {
   GetSchoolsResponse,
@@ -42,6 +45,22 @@ api.interceptors.response.use(
 
 export const studentsApi = {
   /**
+   * Get all ethnicity codes
+   */
+  async getEthnicityCodes(): Promise<{ success: boolean; codes: EthnicityCode[] }> {
+    const response = await api.get('/api/students/ethnicity-codes')
+    return response.data
+  },
+
+  /**
+   * Get all language codes
+   */
+  async getLanguageCodes(): Promise<{ success: boolean; codes: LanguageCode[] }> {
+    const response = await api.get('/api/students/language-codes')
+    return response.data
+  },
+
+  /**
    * Generate synthetic students
    */
   async generateStudents(count: number): Promise<GenerateStudentsResponse> {
@@ -54,6 +73,14 @@ export const studentsApi = {
    */
   async getStudents(): Promise<GetStudentsResponse> {
     const response = await api.get<GetStudentsResponse>('/api/students')
+    return response.data
+  },
+
+  /**
+   * Update a student
+   */
+  async updateStudent(studentId: string, updates: Partial<Student>): Promise<{ success: boolean; student: Student }> {
+    const response = await api.put(`/api/students/${studentId}`, updates)
     return response.data
   },
 

@@ -67,8 +67,10 @@ export function generateASTFile(
     const localId = studentLocalIds.get(student.student_id)!
     const yearLevel = extractYearLevel(student.level)
     const gender = mapGenderCode(student.gender)
-    // Format: local_id,nsn,last_name,first_name,year_level,gender,1,1
-    lines.push(`${localId},${student.nsn},${escapeCSV(student.last_name)},${escapeCSV(student.first_name)},${yearLevel},${gender},1,1`)
+    // Convert language: '999' becomes blank for AST output
+    const languageForAST = student.language === '999' ? '' : student.language
+    // Format: local_id,nsn,last_name,first_name,year_level,gender,language,ethnicity
+    lines.push(`${localId},${student.nsn},${escapeCSV(student.last_name)},${escapeCSV(student.first_name)},${yearLevel},${gender},${languageForAST},${student.ethnicity}`)
   }
 
   // SECTION: Student_Class (link students to their classes)
